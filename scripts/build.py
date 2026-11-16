@@ -9,6 +9,9 @@ page=(root/'src/index.html').read_text().replace('__SITE_ORIGIN__',origin)
 (root/'dist/index.html').write_text(page)
 for name in ('app.js','styles.css'):
  shutil.copyfile(root/'src'/name,root/'dist'/name)
+audio=root/'src'/'audio'
+if audio.is_dir():
+ shutil.copytree(audio,root/'dist'/'audio',dirs_exist_ok=True)
 (root/'dist/robots.txt').write_text('User-agent: *\nAllow: /\nSitemap: '+origin+'/sitemap.xml\n')
 (root/'dist/sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>'+origin+'/</loc></url></urlset>\n')
 print('Built Russian Аллоалло landing.')

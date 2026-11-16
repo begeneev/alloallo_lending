@@ -1,86 +1,350 @@
-const t = source => source;
-const locale = document.documentElement.lang;
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
-$$('.waveform').forEach(w=>{for(let i=0;i<65;i++){const b=document.createElement('i');b.style.setProperty('--h',`${5+Math.abs(Math.sin(i*.87)*Math.cos(i*.16))*32}px`);b.style.setProperty('--d',`${i*.034}s`);w.append(b)}});
-const dialog=$('#contact-dialog');
-function openContact(task,industry){$('#form-view').hidden=false;$('#success-view').hidden=true;if(task)$('#contact-form [name=task]').value=task;if(industry)$('#contact-form [name=industry]').value=industry;dialog.showModal()}
-$$('[data-contact]').forEach(b=>b.addEventListener('click',()=>openContact(b.dataset.task,b.dataset.industry)));
-$('.dialog-close').addEventListener('click',()=>dialog.close());
-dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
-let preparedBrief='';
-$('#contact-form').addEventListener('submit',e=>{e.preventDefault();$$('#contact-form input').forEach(validateContactField);if(!e.target.reportValidity())return;const f=new FormData(e.target);preparedBrief=`${'Заявка на тестовый звонок · Аллоалло'}\n${t('Имя')}: ${f.get('name')}\nТелефон: ${f.get('phone')}\n${t('Сфера')}: ${t(f.get('industry') || 'Не указана')}\n${t('Задача')}: ${t(f.get('task'))}\n\n${t('Подготовлено в макете. Не отправлено.')}\n`;$('#form-view').hidden=true;$('#success-view').hidden=false;$('#download-brief').focus()});
-$('#download-brief').addEventListener('click',()=>{const url=URL.createObjectURL(new Blob([preparedBrief],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='alloallo-test-call.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),500)});
-$('.menu-toggle').addEventListener('click',()=>{const isOpen=$('#navlinks').classList.toggle('open');$('.menu-toggle').setAttribute('aria-expanded',isOpen);$('.menu-toggle').setAttribute('aria-label',isOpen?t('Закрыть меню'):t('Открыть меню'))});
-$$('#navlinks a').forEach(a=>a.addEventListener('click',()=>{$('#navlinks').classList.remove('open');$('.menu-toggle').setAttribute('aria-expanded','false');$('.menu-toggle').setAttribute('aria-label',t('Открыть меню'))}));
-const conversations={inbound:[t('Алло! Здравствуйте. Я AI-ассистент клиники. Помогу выбрать удобное время для записи.'),t('Добрый день! Есть что-нибудь на завтра?'),t('Да, есть время в 14:30. Записать вас?')],outbound:[t('Здравствуйте! Я AI-ассистент службы доставки. Звоню, чтобы согласовать доставку вашего заказа.'),t('Да, удобно. Можно после шести?'),t('Конечно. Передам курьеру: доставить после 18:00.')]};
-let direction='inbound',speechToken=0,speaking=false;
-function stopSpeech(){speechToken++;if('speechSynthesis'in window)window.speechSynthesis.cancel();speaking=false;$('#play-demo').classList.remove('is-playing');$('#play-demo').setAttribute('aria-label',t('Воспроизвести пример разговора'));$('.waveform').classList.remove('playing');$('#audio-label').textContent=t('Послушайте, как это работает')}
-$$('[data-call]').forEach(b=>b.addEventListener('click',()=>{stopSpeech();direction=b.dataset.call;$$('[data-call]').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',x===b)});['agent-line','client-line','answer-line'].forEach((id,i)=>$('#'+id).textContent=conversations[direction][i])}));
-function speakLines(lines,lang,onDone){if(!('speechSynthesis'in window)){onDone(t('В этом браузере озвучка недоступна. Прочитайте диалог выше.'));return}const voices=speechSynthesis.getVoices();const match=voices.filter(v=>v.lang.toLowerCase().startsWith(lang.split('-')[0]));if(!match.length){onDone(t('Голос для этого языка недоступен в браузере. Текст примера — выше.'));return}const token=++speechToken;let i=0;function next(){if(token!==speechToken)return;if(i>=lines.length){onDone();return}const u=new SpeechSynthesisUtterance(lines[i]);u.lang=lang;u.voice=match[i%2]||match[0];u.rate=.98;u.onend=()=>{i++;next()};u.onerror=()=>{if(token===speechToken)onDone(t('Озвучка недоступна. Пример разговора можно прочитать выше.'))};speechSynthesis.speak(u)}next()}
-if('speechSynthesis'in window)speechSynthesis.getVoices();
-$('#play-demo').addEventListener('click',()=>{if(speaking){stopSpeech();return}stopSpeech();speaking=true;$('#play-demo').classList.add('is-playing');$('#play-demo').setAttribute('aria-label',t('Остановить пример разговора'));$('.waveform').classList.add('playing');$('#audio-label').textContent=t('Пример разговора');$('#audio-status').textContent=t('Озвучка браузера · не запись продукта');speakLines(conversations[direction],languageData[locale].lang,error=>{stopSpeech();$('#audio-status').textContent=error||t('Пример завершён · послушать ещё раз')})});
-window.addEventListener('pagehide',stopSpeech);
-const scenarioData={incoming:{tag:t('ПОДДЕРЖКА И ЗАПИСЬ'),title:t('Не заставляйте\nклиентов ждать.'),description:t('Ассистент ответит на входящий звонок, уточнит запрос и поможет клиенту — даже когда рабочий день уже закончился.'),points:[t('Ответит на вопросы о товарах и услугах'),t('Сверится с данными и запишет на приём'),t('Переведёт сложный вопрос сотруднику')],dash:t('Обработка обращения'),flow:[[t('Входящий звонок'),t('Клиент хочет записаться на приём')],[t('Проверка расписания'),t('Ассистент обращается к вашей системе')],[t('Запись создана'),t('Завтра, 14:30 · результат сохранён в CRM')]]},outgoing:{tag:t('ПРОДАЖИ И СЕРВИС'),title:t('Первый шаг —\nза вашим ассистентом.'),description:t('Перезвоните по заявке, подтвердите заказ или напомните о встрече. Ассистент уточнит детали и передаст команде результат.'),points:[t('Квалифицирует входящую заявку'),t('Согласует доставку или подтвердит визит'),t('Сохранит договорённости и следующий шаг')],dash:t('Звонок по заявке'),flow:[[t('Новая заявка в CRM'),t('Клиент интересуется вашим продуктом')],[t('Ассистент звонит'),t('Уточняет задачу и удобное время встречи')],[t('Задача для менеджера'),t('Назначен следующий контакт')]]},campaign:{tag:t('КАМПАНИИ И ОБЗВОНЫ'),title:t('Больше контактов.\nМеньше ручной работы.'),description:t('Запустите обзвон по базе контактов. Управляйте расписанием, параллельными звонками и повторными попытками в одном месте.'),points:[t('Контакты из CSV, Google Sheets или Битрикс24'),t('Расписание и ограничение параллельных звонков'),t('Повторные попытки для тех, кто не ответил')],dash:t('Кампания обзвона'),flow:[[t('База контактов загружена'),t('Сценарий: подтверждение записи')],[t('Звонки по расписанию'),t('Параллельность в пределах заданного лимита')],[t('Результаты по каждому контакту'),t('Подтверждено / перенести / нет ответа')]]}};
-function selectTab(button,buttons){buttons.forEach(b=>{const active=b===button;b.classList.toggle('active',active);b.setAttribute('aria-selected',active);b.tabIndex=active?0:-1})}
-function bindTabKeys(selector){const tabs=$$(selector);tabs.forEach((tab,i)=>tab.addEventListener('keydown',e=>{let n;if(e.key==='ArrowRight')n=(i+1)%tabs.length;if(e.key==='ArrowLeft')n=(i-1+tabs.length)%tabs.length;if(e.key==='Home')n=0;if(e.key==='End')n=tabs.length-1;if(n!==undefined){e.preventDefault();tabs[n].focus();tabs[n].click()}}))}
-$$('[data-scenario]').forEach(b=>b.addEventListener('click',()=>{const d=scenarioData[b.dataset.scenario];selectTab(b,$$('[data-scenario]'));$('#scenario-panel').setAttribute('aria-labelledby',b.id);$('#scenario-tag').textContent=d.tag;$('#scenario-title').textContent=d.title;$('#scenario-title').style.whiteSpace='pre-line';$('#scenario-description').textContent=d.description;$('#scenario-points').replaceChildren(...d.points.map(p=>{const li=document.createElement('li');li.textContent=p;return li}));$('#dash-title').textContent=d.dash;d.flow.forEach(([t,s],i)=>{$(`#flow-${i+1}`).textContent=t;$(`#flow-${i+1}-sub`).textContent=s})}));bindTabKeys('[data-scenario]');
-const usageStages={
-  request:{state:t('МОДЕЛЬ РАБОТАЕТ'),title:t('Обрабатывает запрос'),description:t('Модель обрабатывает данные и формирует решение. Расходуются токены.'),charge:t('По факту использования')},
-  pause:{state:t('МОДЕЛИ НЕ РАБОТАЮТ'),title:t('Пауза без расходов на AI'),description:t('Обработка остановлена. Ни одна модель не работает, поэтому токены не расходуются.'),charge:t('Нет начислений')},
-  answer:{state:t('МОДЕЛЬ РАБОТАЕТ'),title:t('Готовит ответ клиенту'),description:t('Модель создаёт ответ. Использованные токены оплачиваются по тарифу выбранной нейросети.'),charge:t('По факту использования')}
-};
-$$('[data-usage]').forEach(b=>b.addEventListener('click',()=>{const d=usageStages[b.dataset.usage];selectTab(b,$$('[data-usage]'));$('#usage-panel').setAttribute('aria-labelledby',b.id);$('#usage-state').textContent=d.state;$('#usage-title').textContent=d.title;$('#usage-description').textContent=d.description;$('#usage-charge').textContent=d.charge;$('.usage-demo').classList.toggle('is-idle',b.dataset.usage==='pause')}));
-bindTabKeys('[data-usage]');
-const industries={
-  clinic:{name:'Клиники',quote:t('«Хочу записаться на приём. Есть время на завтра?»'),result:t('Ассистент проверит доступное время в подключённом расписании и поможет оформить запись.'),title:t('Больше внимания пациентам'),points:[t('Запись и перенос приёма'),t('Напоминания о визите'),t('Ответы об услугах и подготовке')],cta:t('Подобрать сценарий для клиники')},
-  beauty:{name:'Салоны красоты',quote:t('«Можно записаться на стрижку к моему мастеру в субботу?»'),result:t('Ассистент уточнит услугу и мастера, найдёт свободное время в подключённой системе записи.'),title:t('Мастера заняты клиентами'),points:[t('Запись к выбранному мастеру'),t('Перенос и подтверждение визита'),t('Ответы об услугах салона')],cta:t('Подобрать сценарий для салона')},
-  hotel:{name:'Гостиницы',quote:t('«У вас есть свободный номер на эти выходные?»'),result:t('Ассистент уточнит даты и число гостей, проверит наличие в системе отеля и поможет с бронированием.'),title:t('Гостеприимство с первого звонка'),points:[t('Проверка доступности номеров'),t('Заявки на бронирование'),t('Ответы о заезде и услугах отеля')],cta:t('Подобрать сценарий для гостиницы')},
-  restaurant:{name:'Рестораны',quote:t('«Забронируйте, пожалуйста, столик на четверых к семи.»'),result:t('Ассистент уточнит дату и пожелания, проверит доступность в системе ресторана и оформит бронь.'),title:t('Больше внимания гостям'),points:[t('Бронирование и перенос столиков'),t('Подтверждение брони'),t('Ответы о меню и времени работы')],cta:t('Подобрать сценарий для ресторана')},
-  shop:{name:'Интернет-магазины',quote:t('«Подскажите, когда привезут мой заказ?»'),result:t('Ассистент найдёт заказ в подключённой базе, сообщит статус и уточнит удобное время доставки.'),title:t('От заказа до доставки'),points:[t('Ответы о наличии и статусе заказа'),t('Подтверждение заказов'),t('Согласование доставки')],cta:t('Подобрать сценарий для магазина')},
-  service:{name:'Сервисные компании',quote:t('«Нужен мастер для ремонта. Когда он сможет приехать?»'),result:t('Ассистент уточнит проблему и адрес, проверит расписание и передаст заявку нужному специалисту.'),title:t('Каждая заявка на своём месте'),points:[t('Приём и уточнение заявок'),t('Согласование выезда специалиста'),t('Обратная связь после выполнения')],cta:t('Подобрать сценарий для сервиса')},
-  contact:{name:'Контакт-центры',quote:t('«Помогите разобраться с моей заявкой.»'),result:t('Ассистент уточнит запрос, решит типовой вопрос или передаст разговор сотруднику по настроенному сценарию.'),title:t('Рутина под контролем'),points:[t('Обработка типовых обращений'),t('Квалификация и перевод звонков'),t('Массовые обзвоны и опросы')],cta:t('Подобрать сценарий для контакт-центра')}
-};
-$$('[data-industry-tab]').forEach(b=>b.addEventListener('click',()=>{const d=industries[b.dataset.industryTab];selectTab(b,$$('[data-industry-tab]'));$('#industry-panel').setAttribute('aria-labelledby',b.id);$('#industry-quote').textContent=d.quote;$('#industry-result').textContent=d.result;$('#industry-title').textContent=d.title;$('#industry-points').replaceChildren(...d.points.map(text=>{const li=document.createElement('li');li.textContent=text;return li}));$('#industry-contact-button').textContent=d.cta;$('#industry-contact-button').dataset.industry=d.name}));
-bindTabKeys('[data-industry-tab]');
-const deployments={cloud:{title:t('Сфокусируйтесь на разговорах'),description:t('Мы управляем платформой. Вы настраиваете сценарии, подключаете телефонию и отслеживаете результаты в одном интерфейсе.'),points:[t('Без развёртывания собственной платформы'),t('Подключение CRM и бизнес-систем'),t('Управление сценариями и кампаниями')],caption:t('ОБЛАЧНАЯ ПЛАТФОРМА'),boundary:'Облако Аллоалло',note:t('Ваши системы подключаются к платформе через интеграции.')},own:{title:t('Платформа в вашем контуре'),description:t('Разверните Аллоалло на серверах компании. Архитектуру, доступы и набор моделей подберём под ваши требования к инфраструктуре.'),points:[t('Размещение платформы на ваших серверах'),t('Настройка доступа к внутренним системам'),t('Выбор речевых и AI-провайдеров')],caption:t('ИНФРАСТРУКТУРА ВАШЕЙ КОМПАНИИ'),boundary:t('Ваши серверы'),note:t('Внешние подключения зависят от выбранных AI-моделей и телефонии. Состав решения согласуется отдельно.')}};
-$$('[data-deploy]').forEach(b=>b.addEventListener('click',()=>{const d=deployments[b.dataset.deploy];selectTab(b,$$('[data-deploy]'));$('#deploy-panel').setAttribute('aria-labelledby',b.id);$('#deploy-title').textContent=d.title;$('#deploy-description').textContent=d.description;$('#deploy-points').replaceChildren(...d.points.map(p=>{const li=document.createElement('li');li.textContent=p;return li}));$('#infra-caption').textContent=d.caption;$('#boundary-label').textContent=d.boundary;$('#infra-note').textContent=d.note;$('.infrastructure').classList.toggle('own',b.dataset.deploy==='own')}));bindTabKeys('[data-deploy]');
-const languageData={ru:{text:'Здравствуйте! Чем я могу вам помочь?',name:'Русский',lang:'ru-RU'}};let language=locale,voiceSpeaking=false;
-function resetVoice(){voiceSpeaking=false;$('#voice-play span:last-child').textContent=t('Послушать');$('#voice-play').setAttribute('aria-label',t('Послушать пример приветствия'))}
-$$('[data-language]').forEach(b=>b.addEventListener('click',()=>{stopSpeech();resetVoice();language=b.dataset.language;const l=languageData[language];$$('[data-language]').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',x===b)});$('#voice-quote').textContent=`«${l.text}»`;$('#voice-quote').lang=language;$('#voice-caption').textContent=`${l.name} · ${t('пример приветствия')}`;$('#voice-note').textContent=t('Озвучка голосом браузера')}));
-$('#voice-play').addEventListener('click',()=>{if(voiceSpeaking){stopSpeech();resetVoice();return}stopSpeech();voiceSpeaking=true;$('#voice-play span:last-child').textContent=t('Остановить');$('#voice-play').setAttribute('aria-label',t('Остановить пример приветствия'));const l=languageData[language];speakLines([l.text],l.lang,error=>{resetVoice();$('#voice-note').textContent=error?t('Этот язык недоступен в озвучке вашего браузера.'):t('Озвучка голосом браузера')})});
-$('#play-demo').addEventListener('click',resetVoice);
+const listItems = (items) => items.map(text => { const li = document.createElement('li'); li.textContent = text; return li; });
 
-const channelExamples={
-  messenger:{call:t('«Отправлю детали записи в мессенджер прямо сейчас»'),message:t('Вы записаны на завтра, 14:30. Адрес: Центральная, 10. Если планы изменятся, напишите сюда.'),reply:t('Спасибо! А рядом есть парковка?'),result:t('Ассистент продолжает диалог в мессенджере')},
-  sms:{call:t('«Отправлю подтверждение по SMS, пока мы разговариваем»'),message:t('Запись подтверждена: завтра, 14:30, Центральная, 10. Можно ответить на это сообщение, чтобы уточнить детали.'),reply:t('Можно перенести на 15:00?'),result:t('Общение продолжается в SMS по настроенному сценарию')}
-};
-$$('[data-channel]').forEach(b=>b.addEventListener('click',()=>{const d=channelExamples[b.dataset.channel];selectTab(b,$$('[data-channel]'));$('#channel-panel').setAttribute('aria-labelledby',b.id);$('#channel-call').textContent=d.call;$('#channel-message').textContent=d.message;$('#channel-reply').textContent=d.reply;$('#channel-result').textContent=d.result}));
-bindTabKeys('[data-channel]');
+$$('.waveform').forEach(w => { for (let i = 0; i < 65; i++) { const b = document.createElement('i'); b.style.setProperty('--h', `${5 + Math.abs(Math.sin(i * .87) * Math.cos(i * .16)) * 32}px`); b.style.setProperty('--d', `${i * .034}s`); w.append(b); } });
 
-// Native validation messages follow the language of the page.
-const phoneMessage='Введите корректный номер телефона: от 10 до 15 цифр.';
-function validateContactField(input){
- input.setCustomValidity('');
- if(input.name==='phone'){
-  const digits=input.value.replace(/\D/g,'');
-  if(digits.length<10 || digits.length>15 || !/^\+?[0-9 ()–-]+$/.test(input.value))input.setCustomValidity(phoneMessage);
- }else if(input.name==='name' && !input.value.trim())input.setCustomValidity('Введите имя.');
+/* Contact dialog (mock form: nothing is sent, no call is started). */
+const dialog = $('#contact-dialog');
+/* Visible fields: name, phone, site. Hidden fields keep which button and industry the request came from. */
+function openContact(task, industry) {
+  $('#form-view').hidden = false; $('#success-view').hidden = true;
+  $('#contact-form [name=task]').value = task || 'Звонок агента и демонстрация';
+  $('#contact-form [name=industry]').value = industry || '';
+  dialog.showModal();
 }
-$$('#contact-form input').forEach(input=>{
- input.addEventListener('input',()=>validateContactField(input));
- input.addEventListener('invalid',()=>input.setCustomValidity(input.name==='name'?'Введите имя.':phoneMessage));
+$$('[data-contact]').forEach(b => b.addEventListener('click', () => openContact(b.dataset.task, b.dataset.industry)));
+$('.dialog-close').addEventListener('click', () => dialog.close());
+dialog.addEventListener('click', e => { if (e.target === dialog) { const r = dialog.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dialog.close(); } });
+
+const phoneMessage = 'Введите корректный номер телефона: от 10 до 15 цифр.';
+function validateContactField(input) {
+  input.setCustomValidity('');
+  if (input.name === 'phone') {
+    const digits = input.value.replace(/\D/g, '');
+    if (digits.length < 10 || digits.length > 15 || !/^\+?[0-9 ()–-]+$/.test(input.value)) input.setCustomValidity(phoneMessage);
+  } else if (input.name === 'name' && !input.value.trim()) input.setCustomValidity('Введите имя.');
+  else if (input.name === 'consent' && !input.checked) input.setCustomValidity('Подтвердите согласие, чтобы подготовить заявку.');
+}
+$$('#contact-form input').forEach(input => {
+  input.addEventListener('input', () => validateContactField(input));
+  input.addEventListener('change', () => validateContactField(input));
 });
 
-const conversationExamples={
- interrupt:{context:'Клиент уточняет запрос, пока агент отвечает',agent:'Могу предложить запись на завтра, в первой половине…',client:'Подождите, лучше сегодня после шести.',status:'Остановился и слушает',detail:'Даёт клиенту договорить и учитывает уточнение'},
- noise:{context:'На фоне — громкая музыка и разговоры других людей',agent:'На какое время вас записать?',client:'На завтра после трёх, пожалуйста.',status:'Сосредоточен на клиенте',detail:'Посторонние звуки остаются фоном'}
+let preparedBrief = '';
+$('#contact-form').addEventListener('submit', e => {
+  e.preventDefault();
+  $$('#contact-form input').forEach(validateContactField);
+  if (!e.target.reportValidity()) return;
+  const f = new FormData(e.target);
+  preparedBrief = [
+    'Заявка на звонок агента · Аллоалло',
+    `Имя: ${f.get('name')}`,
+    `Телефон: ${f.get('phone')}`,
+    `Сайт: ${f.get('site') || 'Не указан'}`,
+    `Откуда заявка: ${f.get('task')}${f.get('industry') ? ` · ${f.get('industry')}` : ''}`,
+    '',
+    'Подготовлено в макете. Не отправлено.',
+    ''
+  ].join('\n');
+  $('#form-view').hidden = true; $('#success-view').hidden = false; $('#download-brief').focus();
+});
+$('#download-brief').addEventListener('click', () => {
+  const url = URL.createObjectURL(new Blob([preparedBrief], { type: 'text/plain;charset=utf-8' }));
+  const a = document.createElement('a'); a.href = url; a.download = 'alloallo-demo.txt'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+});
+
+/* Mobile menu. */
+function closeMenu() { $('#navlinks').classList.remove('open'); $('.menu-toggle').setAttribute('aria-expanded', 'false'); $('.menu-toggle').setAttribute('aria-label', 'Открыть меню'); }
+$('.menu-toggle').addEventListener('click', () => { const isOpen = $('#navlinks').classList.toggle('open'); $('.menu-toggle').setAttribute('aria-expanded', isOpen); $('.menu-toggle').setAttribute('aria-label', isOpen ? 'Закрыть меню' : 'Открыть меню'); });
+$$('#navlinks a').forEach(a => a.addEventListener('click', closeMenu));
+/* Close on a tap anywhere outside the menu (pointerdown also fires on iOS for non-clickable areas) and on Escape. */
+document.addEventListener('pointerdown', e => {
+  if (!$('#navlinks').classList.contains('open')) return;
+  if (e.target.closest('#navlinks') || e.target.closest('.menu-toggle')) return;
+  closeMenu();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('#navlinks').classList.contains('open')) { closeMenu(); $('.menu-toggle').focus(); }
+});
+
+/* Shared tab helpers. */
+function selectTab(button, buttons) { buttons.forEach(b => { const active = b === button; b.classList.toggle('active', active); b.setAttribute('aria-selected', active); b.tabIndex = active ? 0 : -1; }); }
+function bindTabKeys(selector) { const tabs = $$(selector); tabs.forEach((tab, i) => tab.addEventListener('keydown', e => { let n; if (e.key === 'ArrowRight') n = (i + 1) % tabs.length; if (e.key === 'ArrowLeft') n = (i - 1 + tabs.length) % tabs.length; if (e.key === 'Home') n = 0; if (e.key === 'End') n = tabs.length - 1; if (n !== undefined) { e.preventDefault(); tabs[n].focus(); tabs[n].click(); } })); }
+
+/* Hero call card. */
+const calls = {
+  missed: {
+    title: 'Звонок в 21:47', subtitle: 'Администратор не ответил — отвечает Аллоалло',
+    lines: ['Здравствуйте! Клиника «Улыбка», голосовой ассистент. Разговор записывается. Чем помочь?', 'Добрый вечер! Можно записаться на чистку зубов на завтра?', 'Да, завтра есть 10:30. Записываю вас и пришлю SMS с адресом.'],
+    result: 'Запись создана', detail: 'Завтра, 10:30 · SMS отправлено'
+  },
+  request: {
+    title: 'Заявка с сайта, 18:42', subtitle: 'Аллоалло перезванивает клиенту',
+    lines: ['Здравствуйте! Это голосовой ассистент клиники «Улыбка». Вы оставили заявку на сайте. Удобно сейчас говорить?', 'Да, хотел узнать про брекеты.', 'Подберу консультацию ортодонта. Завтра в 17:00 подойдёт?'],
+    result: 'Консультация назначена', detail: 'Завтра, 17:00 · карточка в CRM'
+  }
 };
-$$('[data-conversation]').forEach(button=>button.addEventListener('click',()=>{
- const example=conversationExamples[button.dataset.conversation];
- selectTab(button,$$('[data-conversation]'));
- $('#conversation-panel').setAttribute('aria-labelledby',button.id);
- Object.entries(example).forEach(([key,value])=>$('#conversation-'+key).textContent=value);
- $('.conversation-demo').classList.toggle('noise-demo',button.dataset.conversation==='noise');
+/* Real agent recordings: put files into src/audio and set paths, e.g. '/audio/missed.mp3'.
+   Until then the button offers a test call instead of a synthetic browser voice. */
+const recordings = { missed: '', request: '' };
+let direction = 'missed', player = null;
+function setAudioLabels() {
+  const has = Boolean(recordings[direction]);
+  $('#audio-label').textContent = has ? 'Послушайте запись разговора' : 'Услышьте голос в тестовом звонке';
+  $('#audio-status').textContent = has ? 'Запись агента Аллоалло' : 'Агент позвонит вам сам';
+  $('#play-demo').setAttribute('aria-label', has ? 'Воспроизвести запись разговора' : 'Услышать голос агента в тестовом звонке');
+}
+function stopAudio() {
+  if (player) { player.pause(); player = null; }
+  $('#play-demo').classList.remove('is-playing');
+  $('.waveform').classList.remove('playing');
+  setAudioLabels();
+}
+$$('[data-call]').forEach(b => b.addEventListener('click', () => {
+  stopAudio(); direction = b.dataset.call; const c = calls[direction];
+  $$('[data-call]').forEach(x => { x.classList.toggle('active', x === b); x.setAttribute('aria-pressed', x === b); });
+  ['agent-line', 'client-line', 'answer-line'].forEach((id, i) => $('#' + id).textContent = c.lines[i]);
+  $('#call-title').textContent = c.title; $('#call-subtitle').textContent = c.subtitle;
+  $('#result-title').textContent = c.result; $('#result-detail').textContent = c.detail;
+  setAudioLabels();
+}));
+$('#play-demo').addEventListener('click', () => {
+  const src = recordings[direction];
+  if (!src) { openContact('Звонок агента и демонстрация'); return; }
+  if (player) { stopAudio(); return; }
+  player = new Audio(src);
+  player.addEventListener('ended', stopAudio);
+  player.addEventListener('error', () => { stopAudio(); $('#audio-status').textContent = 'Запись недоступна. Закажите тестовый звонок.'; });
+  player.play().then(() => {
+    $('#play-demo').classList.add('is-playing'); $('.waveform').classList.add('playing');
+    $('#play-demo').setAttribute('aria-label', 'Остановить запись'); $('#audio-label').textContent = 'Идёт запись разговора';
+  }).catch(() => stopAudio());
+});
+window.addEventListener('pagehide', stopAudio);
+setAudioLabels();
+
+/* When the agent picks up. */
+const modes = {
+  missed: { tag: 'РЕЖИМ ДЛЯ СТАРТА', title: 'Агент берёт только\nто, что вы теряете.', description: 'Если за 10 секунд никто не ответил, АТС передаёт звонок агенту. Администраторы работают как раньше, а вы видите, сколько звонков агент вернул.', points: ['Отвечает по вашему прайсу, расписанию и правилам', 'Записывает, принимает заказ или собирает заявку', 'Сохраняет итог в CRM и пишет клиенту в мессенджер или SMS'], dash: 'Маршрут звонка', flow: [['Звонок поступил', 'Администратор говорит с другим клиентом'], ['10 секунд без ответа', 'АТС передаёт звонок агенту'], ['Клиент записан', 'Итог в CRM, SMS отправлено']] },
+  offhours: { tag: 'ВЕЧЕР, НОЧЬ, ВЫХОДНЫЕ', title: 'Рабочий день закончился.\nЛиния — нет.', description: 'В нерабочие часы звонки принимает агент. Утром команда видит в CRM записи и заявки, а не список пропущенных.', points: ['Отвечает по вашему расписанию и прайсу', 'Записывает на ближайшие свободные окна', 'Срочное отмечает для команды на утро'], dash: 'Звонок в 21:47', flow: [['Входящий звонок', 'Офис уже закрыт'], ['Отвечает агент', 'Уточняет запрос и проверяет расписание'], ['Запись на завтра', 'Команда видит её утром в CRM']] },
+  firstline: { tag: 'ПЕРВАЯ ЛИНИЯ', title: 'Типовые вопросы — агенту.\nСложные — людям.', description: 'Агент отвечает первым, решает типовые запросы и передаёт сотруднику то, что требует человека.', points: ['Отвечает на вопросы о ценах, адресах и графике', 'Оформляет записи и заказы', 'Переводит звонок через АТС или ставит задачу перезвонить'], dash: 'Первая линия', flow: [['Любой входящий звонок', 'Агент отвечает первым'], ['Типовой вопрос решён', 'Запись, заказ или ответ по прайсу'], ['Сложный — сотруднику', 'Перевод через АТС или задача на перезвон']] }
+};
+$$('[data-scenario]').forEach(b => b.addEventListener('click', () => {
+  const d = modes[b.dataset.scenario];
+  selectTab(b, $$('[data-scenario]'));
+  $('#scenario-panel').setAttribute('aria-labelledby', b.id);
+  $('#scenario-tag').textContent = d.tag;
+  $('#scenario-title').textContent = d.title; $('#scenario-title').style.whiteSpace = 'pre-line';
+  $('#scenario-description').textContent = d.description;
+  $('#scenario-points').replaceChildren(...listItems(d.points));
+  $('#dash-title').textContent = d.dash;
+  d.flow.forEach(([title, sub], i) => { $(`#flow-${i + 1}`).textContent = title; $(`#flow-${i + 1}-sub`).textContent = sub; });
+}));
+bindTabKeys('[data-scenario]');
+
+/* Conversation examples. */
+const conversationExamples = {
+  normal: { context: 'Клиент хочет записаться на завтра', agent: 'Есть окно завтра в 14:30 или в 16:00. Какое удобнее?', client: 'Давайте в 14:30.', status: 'Запись создана', detail: 'Завтра, 14:30 · профгигиена · SMS отправлено' },
+  interrupt: { context: 'Клиент передумал, пока агент отвечал', agent: 'Записываю вас на завтра на 14:30…', client: 'Подождите, лучше в субботу утром.', status: 'Остановился и изменил только время', detail: 'Суббота, 10:00 · остальные данные без изменений' },
+  noise: { context: 'На фоне — шум улицы и чужие голоса', agent: 'Назовите, пожалуйста, адрес доставки.', client: 'Ленина, двенадцать, квартира сорок.', status: 'Адрес сверен перед оформлением', detail: 'Заказ оформлен · доставка завтра с 10 до 14' }
+};
+$$('[data-conversation]').forEach(button => button.addEventListener('click', () => {
+  const example = conversationExamples[button.dataset.conversation];
+  selectTab(button, $$('[data-conversation]'));
+  $('#conversation-panel').setAttribute('aria-labelledby', button.id);
+  Object.entries(example).forEach(([key, value]) => $('#conversation-' + key).textContent = value);
+  $('.conversation-demo').classList.toggle('noise-demo', button.dataset.conversation === 'noise');
 }));
 bindTabKeys('[data-conversation]');
+
+/* Industries. */
+const industries = {
+  delivery: { name: 'Доставка', quote: '«Как обычно, два бутыля, только на новый адрес»', result: 'Агент находит клиента по номеру в вашей системе, меняет адрес и сверяет заказ перед оформлением.', title: 'Заказ с новым адресом', points: ['Повторные заказы по номеру клиента', 'Изменение адреса и времени доставки', 'Напоминание о доставке и детали в SMS'], cta: 'Подобрать сценарий для доставки' },
+  auto: { name: 'Автосервис и шины', quote: '«Сколько стоит переобуться на R17 и когда можно приехать?»', result: 'Агент называет цену «от» по вашему прайсу и предлагает свободное время на шиномонтаж.', title: 'Сезон без потерянных звонков', points: ['Цены по вашему прайсу', 'Запись на шиномонтаж и ТО', 'Перенос и подтверждение визита'], cta: 'Подобрать сценарий для автосервиса' },
+  clinic: { name: 'Клиники', quote: '«Болит зуб, можно сегодня?»', result: 'Агент ищет ближайшее окно и не даёт медицинских советов. Срочный случай передаёт администратору.', title: 'Запись без очереди на линии', points: ['Запись и перенос приёма', 'Напоминание о визите накануне', 'Срочное — администратору'], cta: 'Подобрать сценарий для клиники' },
+  beauty: { name: 'Салоны красоты', quote: '«Можно к Ане на окрашивание в субботу?»', result: 'Агент проверяет расписание мастера и длительность услуги, затем оформляет запись.', title: 'Мастера заняты клиентами', points: ['Запись к выбранному мастеру', 'Перенос и подтверждение визита', 'Ответы об услугах и ценах'], cta: 'Подобрать сценарий для салона' },
+  hotel: { name: 'Гостиницы', quote: '«Есть номер на двоих на эти выходные?»', result: 'Агент проверяет доступность в подключённой системе и называет условия проживания.', title: 'Бронь в любое время суток', points: ['Проверка доступности номеров', 'Бронь или заявка на бронь', 'Ответы о заезде и услугах'], cta: 'Подобрать сценарий для гостиницы' },
+  restaurant: { name: 'Рестораны', quote: '«Столик на шестерых в пятницу в восемь»', result: 'Агент проверяет зал, уточняет пожелания и оформляет резерв.', title: 'Вечером линия не занята', points: ['Бронирование и перенос столиков', 'Пожелания гостей в брони', 'Ответы о меню и времени работы'], cta: 'Подобрать сценарий для ресторана' }
+};
+$$('[data-industry-tab]').forEach(b => b.addEventListener('click', () => {
+  const d = industries[b.dataset.industryTab];
+  selectTab(b, $$('[data-industry-tab]'));
+  $('#industry-panel').setAttribute('aria-labelledby', b.id);
+  $('#industry-quote').textContent = d.quote; $('#industry-result').textContent = d.result; $('#industry-title').textContent = d.title;
+  $('#industry-points').replaceChildren(...listItems(d.points));
+  $('#industry-contact-button').textContent = d.cta; $('#industry-contact-button').dataset.industry = d.name;
+}));
+bindTabKeys('[data-industry-tab]');
+
+/* Hosting options. */
+const deployments = {
+  cloud: { title: 'Быстрый старт в российском облаке', description: 'Платформа работает на серверах в России. Вы подключаете телефонию и CRM, мы настраиваем сценарии и сопровождаем запуск.', points: ['Российские модели на всех этапах', 'Записи и карточки звонков хранятся в России', 'Без собственной инфраструктуры'], caption: 'ОБЛАКО В РОССИИ', boundary: 'Контур Аллоалло в России', note: 'Данные разговора не уходят за рубеж.' },
+  attested: { title: 'Для строгих требований к данным', description: 'Если этого требует ваша служба безопасности, разместим платформу на аттестованной инфраструктуре в России: в дата-центре с аттестатом соответствия требованиям к защите персональных данных.', points: ['Тот же российский контур обработки', 'Уровень защищённости по аттестату дата-центра', 'Для клиник, финансовых компаний и крупных сетей'], caption: 'АТТЕСТОВАННАЯ ИНФРАСТРУКТУРА', boundary: 'Аттестованный дата-центр в России', note: 'Провайдера и уровень защищённости согласуем на разборе проекта.' },
+  own: { title: 'Платформа в вашем контуре', description: 'На корпоративном тарифе разместим платформу на серверах компании. Данные не покидают ваш периметр, подключаются ваши средства защиты.', points: ['Размещение на ваших серверах', 'Доступ к внутренним системам', 'Конфигурация под вашу нагрузку'], caption: 'ИНФРАСТРУКТУРА ВАШЕЙ КОМПАНИИ', boundary: 'Ваши серверы', note: 'Состав компонентов и требования к серверам обсуждаем на разборе.' }
+};
+$$('[data-deploy]').forEach(b => b.addEventListener('click', () => {
+  const d = deployments[b.dataset.deploy];
+  selectTab(b, $$('[data-deploy]'));
+  $('#deploy-panel').setAttribute('aria-labelledby', b.id);
+  $('#deploy-title').textContent = d.title; $('#deploy-description').textContent = d.description;
+  $('#deploy-points').replaceChildren(...listItems(d.points));
+  $('#infra-caption').textContent = d.caption; $('#boundary-label').textContent = d.boundary; $('#infra-note').textContent = d.note;
+  $('.infrastructure').classList.toggle('own', b.dataset.deploy !== 'cloud');
+}));
+bindTabKeys('[data-deploy]');
+
+/* Missed-calls calculator: visitor's own numbers, not a promise. */
+const money = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+function calcValue(id, max) { const v = parseFloat($('#' + id).value.replace(',', '.')); if (!isFinite(v) || v < 0) return 0; return max ? Math.min(v, max) : v; }
+function updateCalculator() {
+  const calls = calcValue('calc-missed') * 30;
+  const revenue = calls * calcValue('calc-intent', 100) / 100 * calcValue('calc-conv', 100) / 100 * calcValue('calc-check');
+  const cost = calls * calcValue('calc-min') * calcValue('calc-rate');
+  $('#calc-out-calls').textContent = money.format(calls);
+  $('#calc-out-revenue').textContent = money.format(revenue) + ' ₽';
+  $('#calc-out-cost').textContent = money.format(cost) + ' ₽';
+}
+$$('.calc-grid input').forEach(input => input.addEventListener('input', updateCalculator));
+updateCalculator();
+
+/* Call and chat as one conversation. */
+const messageExamples = {
+  during: { call: '«Отправлю адрес и подтверждение, пока мы говорим»', firstLabel: 'АГЕНТ · ВО ВРЕМЯ ЗВОНКА', first: 'Вы записаны на завтра, 14:30, профгигиена. Адрес: ул. Центральная, 10. Если планы изменятся, напишите сюда.', secondLabel: 'КЛИЕНТ · ПОСЛЕ ЗВОНКА', second: 'Спасибо! А парковка рядом есть?', result: 'Агент в переписке отвечает с учётом звонка' },
+  reminder: { call: 'Накануне визита агент напоминает о записи', firstLabel: 'АГЕНТ · НАПОМИНАНИЕ', first: 'Здравствуйте! Напоминаем о записи завтра в 14:30. Всё в силе?', secondLabel: 'КЛИЕНТ', second: 'Можно перенести на пятницу после обеда?', result: 'Запись перенесена на пятницу, 15:00 · расписание обновлено' },
+  context: { call: 'Вчера клиент писал в мессенджер, сегодня звонит', firstLabel: 'КЛИЕНТ · В ПЕРЕПИСКЕ, ВЧЕРА', first: 'Сколько стоит отбеливание и есть ли окна на этой неделе?', secondLabel: 'АГЕНТ · В ЗВОНКЕ, СЕГОДНЯ', second: 'Вы спрашивали про отбеливание. Есть окно в четверг в 18:00 — записать вас?', result: 'Голосовой агент продолжил разговор из переписки' }
+};
+$$('[data-msg]').forEach(b => b.addEventListener('click', () => {
+  const d = messageExamples[b.dataset.msg];
+  selectTab(b, $$('[data-msg]'));
+  $('#msg-panel').setAttribute('aria-labelledby', b.id);
+  $('#msg-call').textContent = d.call;
+  $('#msg-first-label').textContent = d.firstLabel; $('#msg-first').textContent = d.first;
+  $('#msg-second-label').textContent = d.secondLabel; $('#msg-second').textContent = d.second;
+  $('#msg-result').textContent = d.result;
+}));
+bindTabKeys('[data-msg]');
+
+/* Motion. Native Web Animations API (the engine Motion's animate() is built on),
+   so the page loads no third-party scripts. Everything respects prefers-reduced-motion. */
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches || !document.body.animate;
+const ease = 'cubic-bezier(.22,1,.36,1)';
+const spring = 'cubic-bezier(.34,1.56,.64,1)';
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+function fadeUp(el, { delay = 0, distance = 24, duration = 750 } = {}) {
+  if (reduceMotion || !el) return;
+  el.animate([{ opacity: 0, transform: `translateY(${distance}px)` }, { opacity: 1, transform: 'none' }], { duration, delay, easing: ease, fill: 'backwards' });
+}
+function popIn(el, delay = 0) {
+  if (reduceMotion || !el) return;
+  el.animate([{ opacity: 0, transform: 'scale(.9) translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 560, delay, easing: spring, fill: 'backwards' });
+}
+function animateFlow(dash, delay = 0) {
+  if (reduceMotion || !dash) return;
+  dash.querySelectorAll('.flow-step').forEach((step, i) => {
+    step.animate([{ opacity: 0, transform: 'translateX(-14px)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: delay + i * 220, easing: ease, fill: 'backwards' });
+    const check = step.querySelector('.flow-check');
+    if (check) check.animate([{ opacity: 0, transform: 'scale(.3)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 420, delay: delay + i * 220 + 260, easing: spring, fill: 'backwards' });
+  });
+}
+
+/* Hero: the call plays out. The agent speaks, the client answers, the result appears. */
+let heroToken = 0;
+async function playHero() {
+  const token = ++heroToken;
+  const messages = $$('.transcript .message'), result = $('.floating-result'), wave = $('.waveform'), timer = $('.audio-time');
+  if (reduceMotion) { timer.textContent = '0:07'; return; }
+  messages.forEach(m => { m.style.opacity = '0'; });
+  result.style.opacity = '0';
+  const started = performance.now();
+  const timerId = setInterval(() => {
+    if (token !== heroToken) { clearInterval(timerId); return; }
+    timer.textContent = `0:${String(Math.floor((performance.now() - started) / 1000)).padStart(2, '0')}`;
+  }, 250);
+  const say = async (i, mode, ms) => {
+    if (token !== heroToken) return false;
+    messages[i].style.opacity = '';
+    fadeUp(messages[i], { distance: 12, duration: 520 });
+    wave.classList.remove('playing', 'listening'); wave.classList.add(mode);
+    $('.call-card').classList.toggle('speaking', mode === 'playing');
+    await wait(ms);
+    return token === heroToken;
+  };
+  await wait(450);
+  if (!await say(0, 'playing', 2300)) return;
+  if (!await say(1, 'listening', 1800)) return;
+  if (!await say(2, 'playing', 2200)) return;
+  wave.classList.remove('playing', 'listening');
+  $('.call-card').classList.remove('speaking');
+  result.style.opacity = ''; popIn(result);
+  clearInterval(timerId);
+}
+$$('[data-call]').forEach(b => b.addEventListener('click', playHero));
+if (!reduceMotion) {
+  $$('.hero h1 .ln').forEach((line, i) => line.animate(
+    [{ opacity: 0, transform: 'translateY(28px)', filter: 'blur(10px)' }, { opacity: 1, transform: 'none', filter: 'blur(0)' }],
+    { duration: 900, delay: 130 * i, easing: ease, fill: 'backwards' }));
+  $$('.hero-copy > :not(h1)').forEach((el, i) => fadeUp(el, { delay: 380 + 90 * i, distance: 18 }));
+  popIn($('.call-card'), 250);
+}
+playHero();
+
+/* Sections reveal as they scroll into view; neighbours follow one after another. */
+const revealSelector = ['.section-heading', '.problem-card', '.stat-row .stat', '.works-with', '.scenario-tabs', '.scenario-panel', '.conversation-copy', '.conversation-demo', '.callback-grid > div', '.industry-tabs', '.industry-panel', '.feature-card', '.deployment-grid > *', '.security-points > div', '.pricing-copy', '.calculator-card', '.start-heading', '.steps-grid > div', '.pilot-footer', '.faq-section > div:first-child', '.faq-list details', '.final-cta'].join(',');
+if (!reduceMotion && 'IntersectionObserver' in window) {
+  const targets = $$(revealSelector);
+  const io = new IntersectionObserver(entries => entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const el = entry.target; io.unobserve(el);
+    const order = [...el.parentElement.children].filter(c => targets.includes(c)).indexOf(el);
+    const delay = Math.min(Math.max(order, 0), 5) * 90;
+    el.style.opacity = '';
+    fadeUp(el, { delay });
+    animateFlow(el.querySelector('.mini-dashboard'), delay + 250);
+  }), { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+  targets.forEach(el => { if (el.getBoundingClientRect().top > innerHeight * .92) el.style.opacity = '0'; io.observe(el); });
+
+  /* Figures count up once they are on screen. */
+  const counter = new IntersectionObserver(entries => entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const el = entry.target; counter.unobserve(el);
+    const raw = el.textContent, m = raw.match(/^(.*?)(\d+(?:,\d+)?)(.*)$/);
+    if (!m) return;
+    const [, before, number, after] = m, decimals = (number.split(',')[1] || '').length, target = parseFloat(number.replace(',', '.'));
+    const start = performance.now(), duration = 1200;
+    const step = now => {
+      const t = Math.min(1, (now - start) / duration), value = target * (1 - Math.pow(1 - t, 3));
+      el.textContent = t < 1 ? before + value.toFixed(decimals).replace('.', ',') + after : raw;
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }), { threshold: 0.6 });
+  $$('.stat strong, .big-stat strong').forEach(el => counter.observe(el));
+}
+
+/* Tab content slides in when it changes. */
+const tabPanels = { '[data-scenario]': ['#scenario-panel .scenario-copy', '#scenario-panel .mini-dashboard'], '[data-conversation]': ['#conversation-panel'], '[data-industry-tab]': ['#industry-panel'], '[data-deploy]': ['#deploy-panel', '.infra-boundary'], '[data-msg]': ['#msg-panel'] };
+Object.entries(tabPanels).forEach(([tabs, panels]) => $$(tabs).forEach(b => b.addEventListener('click', () => panels.forEach(sel => {
+  const el = $(sel);
+  if (sel.includes('mini-dashboard')) animateFlow(el, 80); else fadeUp(el, { distance: 10, duration: 420 });
+}))));
+
+/* Calculator results roll to the new value. */
+const calcOutputs = ['#calc-out-calls', '#calc-out-revenue', '#calc-out-cost'].map(id => $(id));
+const digitsOf = el => Number(el.textContent.replace(/\D/g, '')) || 0;
+calcOutputs.forEach(el => { el.dataset.value = digitsOf(el); });
+$$('.calc-grid input').forEach(input => input.addEventListener('input', () => calcOutputs.forEach(el => {
+  const to = digitsOf(el), from = Number(el.dataset.value) || 0;
+  el.dataset.value = to;
+  if (reduceMotion || from === to) return;
+  const suffix = el.textContent.includes('₽') ? ' ₽' : '';
+  const start = performance.now();
+  const step = now => {
+    if (Number(el.dataset.value) !== to) return;
+    const t = Math.min(1, (now - start) / 450);
+    el.textContent = money.format(from + (to - from) * (1 - Math.pow(1 - t, 3))) + suffix;
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+})));
