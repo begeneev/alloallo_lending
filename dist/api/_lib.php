@@ -212,6 +212,7 @@ function allo_bitrix_on() { return (bool)allo_config()['bitrix_webhook']; }
 function allo_bx($method, $params) {
   $url = rtrim(allo_config()['bitrix_webhook'], '/') . '/' . $method . '.json';
   $body = json_encode($params, JSON_UNESCAPED_UNICODE);
+  $started = microtime(true);
   if (function_exists('curl_init')) {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -230,6 +231,8 @@ function allo_bx($method, $params) {
     if (isset($http_response_header[0]) && preg_match('/\s(\d{3})\s/', $http_response_header[0], $m)) $status = (int)$m[1];
     if ($resp === false) throw new RuntimeException($method . ': no response');
   }
+  $took = microtime(true) - $started;
+  if ($took > 3) allo_log('bitrix_slow', ['method' => $method, 'sec' => round($took, 1)]); // форма ждёт ответа
   $j = json_decode((string)$resp, true);
   // 200 без result (например, страница входа при неверном вебхуке) — тоже ошибка.
   if ($status >= 400 || !is_array($j) || isset($j['error']) || !array_key_exists('result', $j)) {
