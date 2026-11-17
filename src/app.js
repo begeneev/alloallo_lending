@@ -4,12 +4,13 @@ const listItems = (items) => items.map(text => { const li = document.createEleme
 
 $$('.waveform').forEach(w => { for (let i = 0; i < 65; i++) { const b = document.createElement('i'); b.style.setProperty('--h', `${5 + Math.abs(Math.sin(i * .87) * Math.cos(i * .16)) * 32}px`); b.style.setProperty('--d', `${i * .034}s`); w.append(b); } });
 
-/* Contact dialog (mock form: nothing is sent, no call is started). */
+/* Contact dialog. Form → /api/lead.php (deal in Bitrix24) → call page /call/#<code> with the voice widget. */
 const dialog = $('#contact-dialog');
+const DEFAULT_TASK = 'Разговор с агентом и демонстрация';
 /* Visible fields: name, phone, site. Hidden fields keep which button and industry the request came from. */
 function openContact(task, industry) {
-  $('#form-view').hidden = false; $('#success-view').hidden = true;
-  $('#contact-form [name=task]').value = task || 'Звонок агента и демонстрация';
+  showFormError('');
+  $('#contact-form [name=task]').value = task || DEFAULT_TASK;
   $('#contact-form [name=industry]').value = industry || '';
   dialog.showModal();
 }
@@ -17,43 +18,81 @@ $$('[data-contact]').forEach(b => b.addEventListener('click', () => openContact(
 $('.dialog-close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', e => { if (e.target === dialog) { const r = dialog.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dialog.close(); } });
 
-const phoneMessage = 'Введите корректный номер телефона: от 10 до 15 цифр.';
+/* UTM tags of the visit go into the deal. Kept for the tab in case the visitor opens the form later. */
+const utm = (() => {
+  const q = new URLSearchParams(location.search), out = {};
+  ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(k => { if (q.get(k)) out[k] = q.get(k).slice(0, 200); });
+  try {
+    if (Object.keys(out).length) sessionStorage.setItem('alloallo-utm', JSON.stringify(out));
+    else return JSON.parse(sessionStorage.getItem('alloallo-utm') || '{}');
+  } catch (e) {}
+  return out;
+})();
+
+const phoneMessage = 'Введите номер телефона, например +7 900 123-45-67.';
 function validateContactField(input) {
   input.setCustomValidity('');
   if (input.name === 'phone') {
     const digits = input.value.replace(/\D/g, '');
-    if (digits.length < 10 || digits.length > 15 || !/^\+?[0-9 ()–-]+$/.test(input.value)) input.setCustomValidity(phoneMessage);
+    if (digits.length < 10 || digits.length > 15 || !/^\+?[0-9 ()–-]+$/.test(input.value.trim())) input.setCustomValidity(phoneMessage);
   } else if (input.name === 'name' && !input.value.trim()) input.setCustomValidity('Введите имя.');
-  else if (input.name === 'consent' && !input.checked) input.setCustomValidity('Подтвердите согласие, чтобы подготовить заявку.');
+  else if (input.name === 'consent' && !input.checked) input.setCustomValidity('Подтвердите согласие, чтобы отправить заявку.');
 }
 $$('#contact-form input').forEach(input => {
   input.addEventListener('input', () => validateContactField(input));
   input.addEventListener('change', () => validateContactField(input));
 });
 
-let preparedBrief = '';
-$('#contact-form').addEventListener('submit', e => {
+function showFormError(text) {
+  const el = $('#form-error');
+  el.textContent = text;
+  el.hidden = !text;
+}
+const LEAD_ERRORS = {
+  already_called: 'С этого номера сегодня уже был разговор с агентом. Если остались вопросы, оставьте заявку завтра.',
+  too_many: 'Слишком много заявок подряд. Попробуйте через час.',
+  phone: phoneMessage,
+  name: 'Введите имя.',
+  consent: 'Подтвердите согласие, чтобы отправить заявку.'
+};
+const SUBMIT_LABEL = 'Поговорить с агентом';
+
+$('#contact-form').addEventListener('submit', async e => {
   e.preventDefault();
+  const form = e.target, button = form.querySelector('[type=submit]');
   $$('#contact-form input').forEach(validateContactField);
-  if (!e.target.reportValidity()) return;
-  const f = new FormData(e.target);
-  preparedBrief = [
-    'Заявка на звонок агента · Аллоалло',
-    `Имя: ${f.get('name')}`,
-    `Телефон: ${f.get('phone')}`,
-    `Сайт: ${f.get('site') || 'Не указан'}`,
-    `Откуда заявка: ${f.get('task')}${f.get('industry') ? ` · ${f.get('industry')}` : ''}`,
-    '',
-    'Подготовлено в макете. Не отправлено.',
-    ''
-  ].join('\n');
-  $('#form-view').hidden = true; $('#success-view').hidden = false; $('#download-brief').focus();
+  if (!form.reportValidity() || button.disabled) return;
+  showFormError('');
+  const f = new FormData(form);
+  const payload = {
+    name: f.get('name'), phone: f.get('phone'), site: f.get('site'), consent: f.get('consent') === 'on',
+    task: f.get('task'), industry: f.get('industry'), company_extra: f.get('company_extra'),
+    page: location.origin + location.pathname, utm
+  };
+  button.disabled = true; button.textContent = 'Открываем звонок…';
+  try {
+    const r = await fetch('/api/lead.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const j = await r.json().catch(() => ({}));
+    if (j.ok && j.url) { location.assign(j.url); return; }
+    showFormError(LEAD_ERRORS[j.error] || 'Не удалось отправить заявку. Попробуйте ещё раз через минуту.');
+  } catch (err) {
+    showFormError('Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.');
+  }
+  button.disabled = false; button.textContent = SUBMIT_LABEL;
 });
-$('#download-brief').addEventListener('click', () => {
-  const url = URL.createObjectURL(new Blob([preparedBrief], { type: 'text/plain;charset=utf-8' }));
-  const a = document.createElement('a'); a.href = url; a.download = 'alloallo-demo.txt'; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 500);
+/* Back from the call page with the browser's Back button: the page may come from the bfcache with a busy button. */
+window.addEventListener('pageshow', e => {
+  const button = $('#contact-form [type=submit]');
+  if (e.persisted && button.disabled) { button.disabled = false; button.textContent = SUBMIT_LABEL; }
 });
+/* Link straight to the form: аллоалло.рф/#zayavka (the call page links here when a call link has expired). */
+function openFromHash() {
+  if (location.hash !== '#zayavka') return;
+  history.replaceState(null, '', location.pathname + location.search);
+  if (!dialog.open) openContact();
+}
+openFromHash();
+window.addEventListener('hashchange', openFromHash);
 
 /* Mobile menu. */
 function closeMenu() { $('#navlinks').classList.remove('open'); $('.menu-toggle').setAttribute('aria-expanded', 'false'); $('.menu-toggle').setAttribute('aria-label', 'Открыть меню'); }
@@ -93,7 +132,7 @@ let direction = 'missed', player = null;
 function setAudioLabels() {
   const has = Boolean(recordings[direction]);
   $('#audio-label').textContent = has ? 'Послушайте запись разговора' : 'Услышьте голос в тестовом звонке';
-  $('#audio-status').textContent = has ? 'Запись агента Аллоалло' : 'Агент позвонит вам сам';
+  $('#audio-status').textContent = has ? 'Запись агента Аллоалло' : 'Позвоните агенту из браузера';
   $('#play-demo').setAttribute('aria-label', has ? 'Воспроизвести запись разговора' : 'Услышать голос агента в тестовом звонке');
 }
 function stopAudio() {
@@ -112,7 +151,7 @@ $$('[data-call]').forEach(b => b.addEventListener('click', () => {
 }));
 $('#play-demo').addEventListener('click', () => {
   const src = recordings[direction];
-  if (!src) { openContact('Звонок агента и демонстрация'); return; }
+  if (!src) { openContact(DEFAULT_TASK); return; }
   if (player) { stopAudio(); return; }
   player = new Audio(src);
   player.addEventListener('ended', stopAudio);

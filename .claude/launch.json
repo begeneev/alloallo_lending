@@ -4,7 +4,36 @@
     {
       "name": "landing-dist",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4321", "--directory", "dist"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4321",
+        "--directory",
+        "dist"
+      ],
+      "port": 4321
+    },
+    {
+      "name": "landing-php",
+      "runtimeExecutable": "/opt/homebrew/bin/docker",
+      "runtimeArgs": [
+        "run",
+        "--rm",
+        "--name",
+        "alloallo-dev",
+        "-p",
+        "4321:4321",
+        "-e",
+        "ALLOALLO_CONFIG=/dev-stand/config.php",
+        "-v",
+        "/Users/begeneev/Documents/Voice-nextbot/alloallo-ru-landing/dist:/app/dist:ro",
+        "-v",
+        "/Users/begeneev/Documents/Voice-nextbot/alloallo-ru-landing/scripts/dev:/dev-stand:ro",
+        "php:8.2-cli",
+        "sh",
+        "-c",
+        "php -S 127.0.0.1:4322 /dev-stand/mock-bitrix.php & php /dev-stand/mock-smtp.php & exec php -S 0.0.0.0:4321 -t /app/dist /dev-stand/router.php"
+      ],
       "port": 4321
     }
   ]

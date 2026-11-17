@@ -1,3 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /call/
+Disallow: /api/
 Sitemap: https://xn--80aa6aabasd.xn--p1ai/sitemap.xml

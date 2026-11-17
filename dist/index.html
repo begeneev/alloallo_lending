@@ -17,7 +17,7 @@
 <header class="header"><div class="container nav">
   <a class="brand" href="#" aria-label="Аллоалло — главная"><span class="brand-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Аллоалло</a>
   <nav id="navlinks" aria-label="Основная навигация"><a href="#conversation">Голос</a><a href="#how">Как работает</a><a href="#messages">Переписка</a><a href="#industries">Отрасли</a><a href="#security">Безопасность</a><a href="#pricing">Стоимость</a><a href="#pilot">Пилот</a></nav>
-  <button class="button dark nav-cta" data-contact data-task="Звонок агента и демонстрация">Тестовый звонок</button>
+  <button class="button dark nav-cta" data-contact data-task="Разговор с агентом и демонстрация">Тестовый звонок</button>
   <button class="menu-toggle" aria-label="Открыть меню" aria-controls="navlinks" aria-expanded="false"><span></span><span></span></button>
 </div></header>
 <main id="main">
@@ -26,8 +26,8 @@
   <div class="hero-copy">
     <h1><span class="ln">Ни одного</span> <span class="ln"><span class="accent">«алло»</span></span> <span class="ln">в пустоту.</span></h1>
     <p class="hero-description">Аллоалло говорит как живой человек: естественным голосом, своими словами, с живой интонацией. Берёт трубку, когда вашей команде некогда, — в час пик, вечером и в выходные. Записывает клиента или принимает заказ и сохраняет итог в CRM.</p>
-    <div class="hero-actions"><button class="button purple" data-contact data-task="Звонок агента и демонстрация">Пообщаться с агентом</button><a class="button text-button" href="#calculator">Посчитать пропущенные звонки</a></div>
-    <p class="hero-note">Оставьте заявку — агент Аллоалло позвонит, расскажет о сервисе и запишет на демонстрацию. Перебивайте, уточняйте, передумывайте: это и есть пример разговора.</p>
+    <div class="hero-actions"><button class="button purple" data-contact data-task="Разговор с агентом и демонстрация">Пообщаться с агентом</button><a class="button text-button" href="#calculator">Посчитать пропущенные звонки</a></div>
+    <p class="hero-note">Оставьте контакты и позвоните агенту Аллоалло прямо из браузера: он расскажет о сервисе и запишет на демонстрацию. Перебивайте, уточняйте, передумывайте: это и есть пример разговора.</p>
     <div class="hero-benefits"><span class="hero-price">от <strong>3 ₽</strong> / мин</span><span><b>✓</b> Естественный голос</span><span><b>✓</b> Весь разговор — в России</span><span><b>✓</b> Ваш номер и АТС остаются</span></div>
   </div>
   <div class="hero-visual" id="demo"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><span class="visual-label">НА КАЖДОЕ «АЛЛО» — ОТВЕТ</span>
@@ -40,7 +40,7 @@
         <div class="message assistant last-message"><span>АГЕНТ</span><p id="answer-line">Да, завтра есть 10:30. Записываю вас и пришлю SMS с адресом.</p></div>
       </div>
       <div class="waveform" aria-hidden="true"></div>
-      <div class="audio-controls"><button id="play-demo" class="audio-play" aria-label="Услышать голос агента в тестовом звонке"><span class="play-icon"></span></button><div><strong id="audio-label">Услышьте голос в тестовом звонке</strong><span id="audio-status">Агент позвонит вам сам</span></div><span class="audio-time">RU</span></div>
+      <div class="audio-controls"><button id="play-demo" class="audio-play" aria-label="Услышать голос агента в тестовом звонке"><span class="play-icon"></span></button><div><strong id="audio-label">Услышьте голос в тестовом звонке</strong><span id="audio-status">Позвоните агенту из браузера</span></div><span class="audio-time">RU</span></div>
     </div>
     <div class="floating-result"><span class="check-square">✓</span><div><strong id="result-title">Запись создана</strong><span id="result-detail">Завтра, 10:30 · SMS отправлено</span></div><span class="result-corner">✦</span></div>
     <span class="demo-note">Пример сценария</span>
@@ -56,7 +56,7 @@
       <div><span class="conversation-point-icon" aria-hidden="true">↳</span><div><h3>Перебили — слушает.</h3><p>Останавливается и учитывает уточнение, как сделал бы человек. Слышит собеседника и на шумной улице.</p></div></div>
       <div><span class="conversation-point-icon noise-icon" aria-hidden="true">◉</span><div><h3>Голос вашей компании.</h3><p>Тон — как принято у вас: деловой или тёплый, на «вы» или на «ты». Приветствие и прощание можно записать голосом вашего сотрудника.</p></div></div>
     </div>
-    <button class="text-link" data-contact data-task="Звонок агента и демонстрация">Услышать голос в тестовом звонке <span>→</span></button></div>
+    <button class="text-link" data-contact data-task="Разговор с агентом и демонстрация">Услышать голос в тестовом звонке <span>→</span></button></div>
   <div class="conversation-demo"><div class="conversation-demo-heading"><span class="mini-logo">а.</span><strong>Как звучит разговор</strong><span class="example-tag">ПРИМЕР</span></div>
     <div class="conversation-tabs" role="tablist" aria-label="Примеры разговоров"><button id="conversation-normal" role="tab" aria-selected="true" aria-controls="conversation-panel" class="active" data-conversation="normal">Обычная запись</button><button id="conversation-interrupt" role="tab" aria-selected="false" aria-controls="conversation-panel" tabindex="-1" data-conversation="interrupt">Передумал</button><button id="conversation-noise" role="tab" aria-selected="false" aria-controls="conversation-panel" tabindex="-1" data-conversation="noise">Звонок с улицы</button></div>
     <div id="conversation-panel" role="tabpanel" aria-labelledby="conversation-normal"><p class="conversation-context" id="conversation-context">Клиент хочет записаться на завтра</p><div class="conversation-bubble agent-bubble"><span>АГЕНТ АЛЛОАЛЛО</span><p id="conversation-agent">Есть окно завтра в 14:30 или в 16:00. Какое удобнее?</p></div><div class="conversation-bubble person-bubble"><span>КЛИЕНТ</span><p id="conversation-client">Давайте в 14:30.</p></div><div class="listening-status" role="status"><span class="listening-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></span><div><strong id="conversation-status">Запись создана</strong><span id="conversation-detail">Завтра, 14:30 · профгигиена · SMS отправлено</span></div></div></div>
@@ -125,7 +125,7 @@
   </div>
   <div class="industry-panel" id="industry-panel" role="tabpanel" aria-labelledby="industry-clinic">
     <div class="industry-story"><span class="industry-example">ТИПИЧНЫЙ ЗВОНОК</span><blockquote id="industry-quote">«Болит зуб, можно сегодня?»</blockquote><p id="industry-result">Агент ищет ближайшее окно и не даёт медицинских советов. Срочный случай передаёт администратору.</p></div>
-    <div class="industry-actions"><h4 id="industry-title">Запись без очереди на линии</h4><ul class="check-list" id="industry-points"><li>Запись и перенос приёма</li><li>Напоминание о визите накануне</li><li>Срочное — администратору</li></ul><button class="text-link" id="industry-contact-button" data-contact data-industry="Клиники" data-task="Звонок агента и демонстрация">Подобрать сценарий для клиники</button></div>
+    <div class="industry-actions"><h4 id="industry-title">Запись без очереди на линии</h4><ul class="check-list" id="industry-points"><li>Запись и перенос приёма</li><li>Напоминание о визите накануне</li><li>Срочное — администратору</li></ul><button class="text-link" id="industry-contact-button" data-contact data-industry="Клиники" data-task="Разговор с агентом и демонстрация">Подобрать сценарий для клиники</button></div>
   </div>
 </section>
 
@@ -184,7 +184,7 @@
 <section class="start-section" id="pilot"><div class="container">
   <div class="start-heading"><h2>Начните со звонков, <br>которые вы теряете.</h2><p class="pilot-intro">Подключим агента только туда, где сейчас тишина: на звонки без ответа и нерабочие часы. По итогам пилота покажем отчёт: сколько звонков принял агент, что оформил, где понадобился человек и сколько стоил один результат.</p></div>
   <div class="steps-grid four">
-    <div><span class="step-number">01</span><h3>Звонок агента</h3><p>Оставьте заявку на сайте. Агент Аллоалло позвонит, расскажет о сервисе и запишет вас на демонстрацию. Так вы сразу слышите, как он говорит.</p></div>
+    <div><span class="step-number">01</span><h3>Разговор с агентом</h3><p>Оставьте контакты на сайте и позвоните агенту Аллоалло прямо из браузера. Он расскажет о сервисе и запишет вас на демонстрацию. Так вы сразу слышите, как он говорит.</p></div>
     <div><span class="step-number">02</span><h3>Демонстрация</h3><p>Покажем демо-агента вашей компании, подготовленного по вашему сайту: услуги, цены, адреса. Разберём, какие звонки передать ему первыми.</p></div>
     <div><span class="step-number">03</span><h3>Настройка и пилот</h3><p>Сценарий, правила, АТС и CRM. В пилоте агент получает только звонки без ответа и нерабочие часы, команда работает как раньше.</p></div>
     <div><span class="step-number">04</span><h3>Решение по отчёту</h3><p>Расширяем, меняем сценарий или останавливаемся. Запуск на реальных звонках обычно занимает около месяца.</p></div>
@@ -192,9 +192,10 @@
   <div class="pilot-footer"><p><strong>Что нужно от вас:</strong> прайс и ответы на частые вопросы, доступ к АТС, доступ к CRM или системе записи и один человек, который послушает тестовые звонки.</p><button class="button purple" data-contact data-task="Пилот на пропущенных звонках">Обсудить пилот</button></div>
 </div></section>
 
-<section class="section container faq-section" id="faq"><div><h2>Хорошие вопросы. <br>Прямые ответы.</h2><p>Не нашли свой? <br>Разберём вашу задачу вместе.</p><button class="text-link" data-contact data-task="Звонок агента и демонстрация">Тестовый звонок</button></div>
+<section class="section container faq-section" id="faq"><div><h2>Хорошие вопросы. <br>Прямые ответы.</h2><p>Не нашли свой? <br>Разберём вашу задачу вместе.</p><button class="text-link" data-contact data-task="Разговор с агентом и демонстрация">Тестовый звонок</button></div>
   <div class="faq-list">
-    <details><summary>Насколько естественно звучит агент?<span>+</span></summary><p>Агент говорит естественным голосом, с живой интонацией и паузами, и ведёт разговор своими словами, а не по скрипту. Лучше один раз услышать: оставьте заявку, и агент позвонит вам сам.</p></details>
+    <details><summary>Насколько естественно звучит агент?<span>+</span></summary><p>Агент говорит естественным голосом, с живой интонацией и паузами, и ведёт разговор своими словами, а не по скрипту. Лучше один раз услышать: оставьте контакты и поговорите с агентом прямо на сайте.</p></details>
+    <details><summary>Как проходит разговор с агентом на сайте?<span>+</span></summary><p>Оставьте имя и телефон — откроется страница звонка. Звонок идёт прямо через браузер, нужен только микрофон. Агент уже знает номер из заявки: расскажет о сервисе, ответит на вопросы и запишет на демонстрацию. С одного номера — один разговор в сутки.</p></details>
     <details><summary>Клиенты поймут, что говорят с ассистентом?<span>+</span></summary><p>Агент сам называет себя ассистентом и предупреждает о записи разговора: мы не выдаём его за человека. Клиент звонит, чтобы решить вопрос, и ему важно, что с ним говорят естественно и записывают на удобное время.</p></details>
     <details><summary>Можно выбрать голос и манеру разговора?<span>+</span></summary><p>Да. Подберём голос и тон под вашу аудиторию: деловой или тёплый, на «вы» или на «ты». Приветствие и прощание можно записать голосом вашего сотрудника. По его письменному согласию можно сделать копию голоса — для этого нужна чистая запись от 30 минут.</p></details>
     <details><summary>Что если агент не понял клиента?<span>+</span></summary><p>Переспросит короче. Если не поймёт со второго раза, скажет, что уточнит у менеджера, и поставит задачу на перезвон или переведёт звонок на сотрудника.</p></details>
@@ -212,27 +213,28 @@
     <details><summary>На каком языке говорит агент?<span>+</span></summary><p>На русском. Аллоалло работает с русскоязычной аудиторией. Названия улиц, брендов и ваши термины добавляем в словарь, чтобы агент их правильно распознавал.</p></details>
     <details><summary>Кто меняет сценарий после запуска?<span>+</span></summary><p>Наша команда, по вашему запросу в поддержку. Мелкие правки входят в поддержку, новые функции и интеграции оцениваем отдельно.</p></details>
     <details><summary>Как проходит демонстрация?<span>+</span></summary><p>Вы оставляете заявку, и агент Аллоалло звонит вам: рассказывает о сервисе, отвечает на вопросы и предлагает время для демонстрации. На ней покажем демо-агента вашей компании, подготовленного по вашему сайту, и обсудим, какие звонки передать ему первыми.</p></details>
-    <details><summary>Чем демо отличается от пилота?<span>+</span></summary><p>Демо — звонок агента Аллоалло и демонстрация, где мы показываем агента, подготовленного по вашему сайту. Пилот — работа на ваших реальных звонках с отчётом по согласованным критериям.</p></details>
+    <details><summary>Чем демо отличается от пилота?<span>+</span></summary><p>Демо — разговор с агентом Аллоалло на сайте и демонстрация, где мы показываем агента, подготовленного по вашему сайту. Пилот — работа на ваших реальных звонках с отчётом по согласованным критериям.</p></details>
   </div>
 </section>
 
-<section class="final-cta container"><div><h2>Поговорите с агентом <br>сами.</h2><p>Агент Аллоалло позвонит, расскажет о сервисе и запишет на демонстрацию. На ней покажем демо-агента для вашей компании.</p><p class="cta-quote">«Здравствуйте! Это Аллоалло, голосовой ассистент. Вы оставили заявку на сайте — расскажу, как я буду отвечать вашим клиентам, и запишу вас на демонстрацию. Удобно говорить?»</p><button class="button white" data-contact data-task="Звонок агента и демонстрация">Заказать звонок агента</button></div><div class="cta-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></section>
+<section class="final-cta container"><div><h2>Поговорите с агентом <br>сами.</h2><p>Позвоните агенту Аллоалло прямо из браузера: он расскажет о сервисе и запишет на демонстрацию. На ней покажем демо-агента для вашей компании.</p><p class="cta-quote">«Здравствуйте! Я Аллоалло, голосовой ассистент. Расскажу, как буду отвечать вашим клиентам, и запишу вас на демонстрацию. Чем занимается ваша компания?»</p><button class="button white" data-contact data-task="Разговор с агентом и демонстрация">Поговорить с агентом</button></div><div class="cta-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></section>
 
 </main>
 <footer class="footer container"><a class="brand" href="#"><span class="brand-icon" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Аллоалло</a><p>На каждое «алло» — ответ.</p><span>© 2026 Аллоалло</span></footer>
 <dialog id="contact-dialog" aria-labelledby="contact-title"><button class="dialog-close" aria-label="Закрыть">×</button>
-  <div id="form-view"><h2 id="contact-title">Поговорите с агентом сами</h2><p class="muted">Агент Аллоалло позвонит, расскажет о сервисе и запишет на демонстрацию. На ней покажем демо-агента для вашей компании.</p>
+  <div id="form-view"><h2 id="contact-title">Поговорите с агентом сами</h2><p class="muted">Позвоните агенту Аллоалло прямо из браузера: он расскажет о сервисе и запишет на демонстрацию. На ней покажем демо-агента для вашей компании.</p>
     <form id="contact-form">
-      <input type="hidden" name="task" value="Звонок агента и демонстрация"><input type="hidden" name="industry" value="">
+      <input type="hidden" name="task" value="Разговор с агентом и демонстрация"><input type="hidden" name="industry" value="">
+      <div class="hp-field" aria-hidden="true"><input name="company_extra" tabindex="-1" autocomplete="off"></div>
       <div class="form-row">
         <input name="name" autocomplete="name" placeholder="Ваше имя" aria-label="Имя" required maxlength="100">
-        <input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Телефон" aria-label="Телефон для звонка" required maxlength="28">
+        <input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Телефон" aria-label="Телефон" required maxlength="28">
       </div>
       <input name="site" autocomplete="url" inputmode="url" placeholder="Сайт компании" aria-label="Сайт компании" maxlength="200">
-      <label class="consent"><input type="checkbox" name="consent" required><span>Согласен на обработку персональных данных для ответа на заявку</span></label>
-      <button class="button purple" type="submit">Заказать звонок агента</button>
-      <p class="form-note">Макет формы: заявка не отправляется и звонок не запускается.</p>
+      <label class="consent"><input type="checkbox" name="consent" required><span>Согласен на обработку персональных данных для заявки и демонстрации</span></label>
+      <p class="form-error" id="form-error" role="alert" hidden></p>
+      <button class="button purple" type="submit">Поговорить с агентом</button>
+      <p class="form-note">После отправки откроется страница звонка. Нужен только микрофон.</p>
     </form></div>
-  <div id="success-view" hidden><span class="success-icon">✓</span><h2>Заявка подготовлена</h2><p>Это демонстрация: заявка не отправлена и звонок не запускается. Скачайте заявку, чтобы сохранить данные.</p><button id="download-brief" class="button purple">Скачать заявку</button></div>
 </dialog>
 </body></html>
