@@ -9,6 +9,9 @@ page=(root/'src/index.html').read_text().replace('__SITE_ORIGIN__',origin)
 (root/'dist/index.html').write_text(page)
 for name in ('app.js','styles.css'):
  shutil.copyfile(root/'src'/name,root/'dist'/name)
+demo=root/'src'/'demo'
+if demo.is_dir():
+ shutil.copytree(demo,root/'dist'/'demo',dirs_exist_ok=True)
 audio=root/'src'/'audio'
 if audio.is_dir():
  shutil.copytree(audio,root/'dist'/'audio',dirs_exist_ok=True)
