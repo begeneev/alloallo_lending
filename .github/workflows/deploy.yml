@@ -1,0 +1,62 @@
+name: Deploy to reg.ru
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Пробный запуск: только показать, что изменится"
+        type: boolean
+        default: true
+
+concurrency:
+  group: deploy-regru
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # При push деплой идёт, только если переменная DEPLOY_ON_PUSH = true (шаг 5).
+    # Ручной запуск во вкладке Actions работает всегда.
+    if: github.event_name == 'workflow_dispatch' || vars.DEPLOY_ON_PUSH == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Получить код
+        uses: actions/checkout@v5
+
+      - name: Собрать dist/ из src/
+        run: python3 scripts/build.py
+
+      - name: Подготовить SSH-ключ
+        env:
+          SSH_KEY: ${{ secrets.REGRU_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.REGRU_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Скопировать dist/ на хостинг
+        env:
+          SSH_HOST: ${{ secrets.REGRU_HOST }}
+          SSH_USER: ${{ secrets.REGRU_USER }}
+          SITE_DIR: ${{ secrets.REGRU_PATH }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          # Защита: с --delete неверный путь может стереть лишнее
+          case "$SITE_DIR" in
+            /var/www/*/*) ;;
+            *) echo "REGRU_PATH пустой или не похож на папку сайта"; exit 1 ;;
+          esac
+          extra=""
+          if [ "$DRY_RUN" = "true" ]; then
+            extra="--dry-run"
+            echo "Пробный запуск: на хостинге ничего не меняется"
+          fi
+          rsync -rlptz --delete --itemize-changes $extra \
+            --chmod=D755,F644 \
+            --exclude='.well-known/' --exclude='.htaccess' \
+            -e "ssh -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes" \
+            dist/ "$SSH_USER@$SSH_HOST:$SITE_DIR/"
