@@ -9,8 +9,9 @@ page=(root/'src/index.html').read_text().replace('__SITE_ORIGIN__',origin)
 (root/'dist/index.html').write_text(page)
 for name in ('app.js','styles.css'):
  shutil.copyfile(root/'src'/name,root/'dist'/name)
-# Folders copied as is: call page (/call/), server part on PHP (/api/), recordings of the agent (/audio/).
-for folder in ('call','api','audio'):
+# Folders copied as is: call page (/call/), server part on PHP (/api/), recordings of the agent (/audio/),
+# demo agents page (/demo/, maintained separately, not edited here).
+for folder in ('call','api','audio','demo'):
  src=root/'src'/folder
  if src.is_dir():
   shutil.copytree(src,root/'dist'/folder,dirs_exist_ok=True)
