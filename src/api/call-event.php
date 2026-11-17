@@ -69,9 +69,17 @@ if (allo_bitrix_on()) {
       $created = true;
       allo_update('codes', $code, function ($r) use ($deal) { if ($r) { $r['deal'] = $deal; $r['bitrix_error'] = null; } return $r; });
     }
-    $fields = [];
-    if ($cfg['bitrix_stage_called']) $fields['STAGE_ID'] = $cfg['bitrix_stage_called'];
-    if ($fields) allo_bx('crm.deal.update', ['id' => (int)$deal, 'fields' => $fields]);
+    // Стадию двигаем только вперёд: если за время разговора сделку уже перевели дальше (агент записал
+    // на демонстрацию, менеджер взял в работу), не возвращаем её на «разговор состоялся».
+    $st = allo_stages();
+    if ($st['called']) {
+      $current = $created ? $st['new'] : (string)(allo_bx('crm.deal.get', ['id' => (int)$deal])['STAGE_ID'] ?? '');
+      if (!$st['new'] || $current === $st['new'] || $current === '') {
+        if ($current !== $st['called']) allo_bx('crm.deal.update', ['id' => (int)$deal, 'fields' => ['STAGE_ID' => $st['called']]]);
+      } else {
+        $summary[] = ['Стадия', 'не меняли: сделку уже перевели дальше'];
+      }
+    }
     allo_deal_comment($deal, allo_lines($summary));
     $bitrix = 'ok';
   } catch (Throwable $e) {

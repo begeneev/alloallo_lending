@@ -39,6 +39,7 @@ function allo_config() {
     'bitrix_stage_new' => '',
     'bitrix_stage_called' => '',
     'bitrix_category_id' => 0,
+    'bitrix_funnel' => '',
     'bitrix_source_id' => 'WEB',
     'bitrix_assigned_by_id' => 0,
     'widget_url' => '',
@@ -160,7 +161,7 @@ function allo_phone_key($phone) { return hash('sha256', 'alloallo|' . $phone); }
 
 // Удаляет просроченные записи (заявки старше двух суток). Вызывается изредка из lead.php.
 function allo_cleanup() {
-  foreach (['codes', 'phones', 'rate'] as $sub) {
+  foreach (['codes', 'phones', 'rate', 'cache'] as $sub) {
     $dir = allo_dir($sub);
     if (!$dir) continue;
     foreach (array_merge(glob($dir . '/*.json') ?: [], glob($dir . '/*.lock') ?: []) as $f) {
@@ -238,10 +239,109 @@ function allo_bx($method, $params) {
   return $j['result'];
 }
 
-// Воронка берётся из кода стадии (C29:NEW → 29), чтобы стадия и воронка не разошлись.
-function allo_category($stage) {
-  if (preg_match('/^C(\d+):/', (string)$stage, $m)) return (int)$m[1];
+// --- Стадии сделки. В настройках — название стадии, как оно написано в воронке Битрикс24 («Новый лид»),
+// или её код (C29:NEW). Названия сервер переводит в коды сам: читает воронки портала и запоминает на час.
+// Воронку находит по стадиям: та, где есть обе. Если такие стадии есть в нескольких — нужна bitrix_funnel.
+
+function allo_norm($s) {
+  $s = trim(preg_replace('/\s+/u', ' ', (string)$s));
+  $s = function_exists('mb_strtolower') ? mb_strtolower($s, 'UTF-8') : strtolower($s);
+  return str_replace(['ё', '«', '»', '"'], ['е', '', '', ''], $s);
+}
+
+function allo_is_stage_code($v) { return (bool)preg_match('/^(C\d+:)?[A-Z][A-Z0-9_]*$/', (string)$v); }
+
+// Воронка из кода стадии (C29:NEW → 29); у основной воронки префикса нет.
+function allo_category_of($code) {
+  if (preg_match('/^C(\d+):/', (string)$code, $m)) return (int)$m[1];
   return (int)allo_config()['bitrix_category_id'];
+}
+
+// Воронки сделок портала со стадиями по порядку: [id => ['name' => …, 'stages' => [[code, name], …]]].
+function allo_bx_funnels() {
+  $cats = [];
+  try {
+    $res = allo_bx('crm.category.list', ['entityTypeId' => 2]);
+    foreach (($res['categories'] ?? []) as $c) $cats[(int)$c['id']] = (string)$c['name'];
+  } catch (Throwable $e) {
+    // старые порталы: воронки только через crm.dealcategory.list
+    foreach ((array)allo_bx('crm.dealcategory.list', []) as $c) $cats[(int)$c['ID']] = (string)$c['NAME'];
+  }
+  if (!isset($cats[0])) $cats = [0 => 'Общая'] + $cats;
+  $out = [];
+  foreach ($cats as $id => $name) {
+    $list = allo_bx('crm.status.list', ['order' => ['SORT' => 'ASC'], 'filter' => ['ENTITY_ID' => $id ? 'DEAL_STAGE_' . $id : 'DEAL_STAGE']]);
+    $stages = [];
+    foreach ((array)$list as $st) $stages[] = [(string)$st['STATUS_ID'], (string)$st['NAME']];
+    $out[$id] = ['name' => $name, 'stages' => $stages];
+  }
+  return $out;
+}
+
+// Код стадии в воронке по названию: точное совпадение (без учёта регистра, ё/е и кавычек), иначе — единственная
+// стадия, название которой начинается с указанного (или наоборот): «Новый лид» найдёт «Новый лид (сайт)».
+function allo_find_stage($want, $stages) {
+  if (allo_is_stage_code($want)) {
+    foreach ($stages as $st) if ($st[0] === $want) return $st[0];
+    return null;
+  }
+  $w = allo_norm($want);
+  foreach ($stages as $st) if (allo_norm($st[1]) === $w) return $st[0];
+  if (strlen($w) < 6) return null;
+  $hits = [];
+  foreach ($stages as $st) {
+    $n = allo_norm($st[1]);
+    if ($n !== '' && (strpos($n, $w) === 0 || strpos($w, $n) === 0)) $hits[] = $st[0];
+  }
+  return count($hits) === 1 ? $hits[0] : null;
+}
+
+// ['new' => код, 'called' => код, 'category' => воронка]. Ошибка — исключение с понятным текстом:
+// он попадёт в журнал и в письмо «Внесите вручную».
+function allo_stages() {
+  static $res = null;
+  if ($res !== null) return $res;
+  $cfg = allo_config();
+  $want = ['new' => trim((string)$cfg['bitrix_stage_new']), 'called' => trim((string)$cfg['bitrix_stage_called'])];
+  $set = array_filter($want, 'strlen');
+  $named = array_filter($set, function ($v) { return !allo_is_stage_code($v); });
+  if (!$named) return $res = $want + ['category' => allo_category_of($want['new'] ?: $want['called'])];
+
+  $key = 'stages-' . substr(hash('sha256', $cfg['bitrix_webhook'] . '|' . json_encode([$want, $cfg['bitrix_funnel']], JSON_UNESCAPED_UNICODE)), 0, 24);
+  $cached = allo_read('cache', $key);
+  if ($cached && isset($cached['stages'])) return $res = $cached['stages'];
+
+  $funnels = allo_bx_funnels();
+  $only = trim((string)$cfg['bitrix_funnel']);
+  $found = [];
+  foreach ($funnels as $id => $f) {
+    if ($only !== '' && (string)$id !== $only && allo_norm($f['name']) !== allo_norm($only)) continue;
+    $codes = [];
+    foreach ($set as $k => $v) {
+      $c = allo_find_stage($v, $f['stages']);
+      if ($c === null) continue 2;
+      $codes[$k] = $c;
+    }
+    $found[$id] = $codes;
+  }
+  if (count($found) > 1) {
+    $names = array_map(function ($id) use ($funnels) { return '«' . $funnels[$id]['name'] . '» (' . $id . ')'; }, array_keys($found));
+    throw new RuntimeException('такие стадии есть в нескольких воронках: ' . implode(', ', $names) . ' — укажите нужную в bitrix_funnel');
+  }
+  if (!$found) {
+    $all = [];
+    foreach ($funnels as $id => $f) {
+      if ($only !== '' && (string)$id !== $only && allo_norm($f['name']) !== allo_norm($only)) continue;
+      $all[] = '«' . $f['name'] . '»: ' . implode(', ', array_map(function ($st) { return $st[1]; }, $f['stages']));
+    }
+    $msg = 'не нашлась воронка со стадиями «' . implode('» и «', $set) . '»' . ($only !== '' ? ' (bitrix_funnel = ' . $only . ')' : '') . '. Есть: ' . implode('; ', $all);
+    throw new RuntimeException(function_exists('mb_substr') ? mb_substr($msg, 0, 700, 'UTF-8') : substr($msg, 0, 1400));
+  }
+  $id = array_keys($found)[0];
+  $res = $found[$id] + ['new' => '', 'called' => '', 'category' => $id];
+  allo_write('cache', $key, ['stages' => $res, 'expires' => time() + 3600]);
+  allo_log('bitrix_stages', $res);
+  return $res;
 }
 
 // Контакт по телефону: есть — берём, нет — заводим.
@@ -263,11 +363,12 @@ function allo_lines($pairs) {
 // Сделка по заявке с сайта: стадия bitrix_stage_new.
 function allo_create_deal($rec) {
   $cfg = allo_config();
-  $stage = $cfg['bitrix_stage_new'];
+  $st = allo_stages();
+  $stage = $st['new'];
   $host = $rec['site'] ? preg_replace('~^https?://(www\.)?~i', '', rtrim($rec['site'], '/')) : '';
   $fields = [
     'TITLE' => 'Аллоалло: ' . ($host ?: $rec['name'] ?: '+' . $rec['phone']),
-    'CATEGORY_ID' => allo_category($stage),
+    'CATEGORY_ID' => $st['category'],
     'CONTACT_ID' => allo_contact($rec['phone'], $rec['name']),
     'SOURCE_ID' => $cfg['bitrix_source_id'],
     'SOURCE_DESCRIPTION' => 'Форма на сайте: ' . $rec['task'],
