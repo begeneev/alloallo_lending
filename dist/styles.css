@@ -210,3 +210,8 @@ form label.consent input{width:18px;height:18px;margin:1px 0 0;padding:0;flex:no
 /* The site is one light design: keep native controls and the dialog light even when the host or the system prefers dark. */
 :root,:root[data-theme]{color-scheme:light!important}
 #contact-dialog{background:#fff;color:var(--ink)}
+
+/* Live form: bot trap and server error message */
+#contact-form .hp-field{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+#contact-form .form-error{margin:0;padding:10px 12px;border-radius:8px;background:#fdecec;color:#a61b1b;font-size:13px;line-height:1.5}
+#contact-form .button:disabled{opacity:.75;transform:none}
