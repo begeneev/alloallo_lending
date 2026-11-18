@@ -8,20 +8,25 @@ $in = json_decode($body, true) ?: [];
 error_log('BITRIX ' . $method . ' ' . $body);
 $stageFile = '/tmp/mock-bitrix-stage';
 $funnels = [
-  'DEAL_STAGE' => [['NEW', 'Новая'], ['PREPARATION', 'Подготовка документов'], ['WON', 'Сделка успешна'], ['LOSE', 'Сделка провалена']],
-  'DEAL_STAGE_29' => [['C29:NEW', 'Новый лид'], ['C29:UC_K4T1QX', 'Созвонился с агентом'], ['C29:UC_8XW2ZL', 'Демо назначено'], ['C29:WON', 'Клиент'], ['C29:LOSE', 'Отказ']],
+  'DEAL_STAGE' => [['NEW', 'Новая'], ['PREPARATION', 'Подготовка документов'], ['WON', 'Сделка успешна', 'success'], ['LOSE', 'Сделка провалена', 'failure']],
+  // «Новый лид» есть в двух воронках, как на портале: сервер выбирает ту, где есть все три стадии.
+  'DEAL_STAGE_59' => [['C59:NEW', 'Новый лид'], ['C59:PREPARATION', 'Оплатил курс'], ['C59:WON', 'Купил', 'success']],
+  'DEAL_STAGE_61' => [['C61:NEW', 'Новый лид'], ['C61:UC_JJQIEM', 'Заявка голос'], ['C61:PREPARATION', 'Отправлено сообщение'],
+    ['C61:PREPAYMENT_INVOIC', 'В работе у ИИ-агента'], ['C61:UC_TRYSNP', 'Начал звонок'], ['C61:UC_FK8BK2', 'Созвонился с агентом'],
+    ['C61:EXECUTING', 'Назначена консультация'], ['C61:WON', 'Сделка успешна', 'success'], ['C61:LOSE', 'Сделка провалена', 'failure']],
 ];
 switch ($method) {
   case 'crm.duplicate.findbycomm': $r = []; break;
   case 'crm.contact.add': $r = 11; break;
-  case 'crm.deal.add': $r = 501; file_put_contents($stageFile, $in['fields']['STAGE_ID'] ?? 'NEW'); break;
+  // Робот портала: на «Новый лид» отправляет сообщение в WhatsApp и переводит сделку на «Отправлено сообщение».
+  case 'crm.deal.add': $r = 501; $s0 = $in['fields']['STAGE_ID'] ?? 'NEW'; file_put_contents($stageFile, $s0 === 'C61:NEW' ? 'C61:PREPARATION' : $s0); break;
   case 'crm.deal.update': $r = true; if (isset($in['fields']['STAGE_ID'])) file_put_contents($stageFile, $in['fields']['STAGE_ID']); break;
-  case 'crm.deal.get': $r = ['ID' => (string)($in['id'] ?? 0), 'STAGE_ID' => is_file($stageFile) ? file_get_contents($stageFile) : 'C29:NEW']; break;
+  case 'crm.deal.get': $r = ['ID' => (string)($in['id'] ?? 0), 'STAGE_ID' => is_file($stageFile) ? file_get_contents($stageFile) : 'C61:NEW']; break;
   case 'crm.timeline.comment.add': $r = 77; break;
-  case 'crm.category.list': $r = ['categories' => [['id' => 0, 'name' => 'Общая'], ['id' => 29, 'name' => 'Аллоалло']]]; break;
+  case 'crm.category.list': $r = ['categories' => [['id' => 0, 'name' => 'Общая'], ['id' => 59, 'name' => 'Интенсив'], ['id' => 61, 'name' => 'Лидген на разработку']]]; break;
   case 'crm.status.list':
     $r = [];
-    foreach ($funnels[$in['filter']['ENTITY_ID'] ?? ''] ?? [] as $i => $s) $r[] = ['STATUS_ID' => $s[0], 'NAME' => $s[1], 'SORT' => ($i + 1) * 10];
+    foreach ($funnels[$in['filter']['ENTITY_ID'] ?? ''] ?? [] as $i => $s) $r[] = ['STATUS_ID' => $s[0], 'NAME' => $s[1], 'SORT' => ($i + 1) * 10, 'EXTRA' => ['SEMANTICS' => $s[2] ?? 'process']];
     break;
   default: http_response_code(400); header('Content-Type: application/json'); echo json_encode(['error' => 'ERROR_METHOD_NOT_FOUND']); return;
 }

@@ -5,7 +5,8 @@
  *    номер сделки). Контекст уходит в виджет атрибутом data-alloallo-context.
  * 3. Звоним своей кнопкой: плавающую кнопку виджета прячем, звонок запускаем AlloalloWidget.start() / stop(),
  *    состояние читаем из AlloalloWidget.getState().connectionStatus.
- * 4. Соединились — /api/call-event.php {event:'connected'}; положили трубку или закрыли страницу во время
+ * 4. Нажали кнопку — {event:'start'}: сделка переходит на «Начал звонок» (один раз).
+ *    Соединились — /api/call-event.php {event:'connected'}; положили трубку или закрыли страницу во время
  *    разговора — {event:'ended'}: сервер пишет итог в сделку Битрикс24 и меняет её стадию.
  * Кто говорит, виджет не сообщает — определяем по громкости голоса агента и микрофона.
  */
@@ -122,6 +123,7 @@
     }
   }, 150);
 
+  let startSent = false;
   btn.addEventListener('click', () => {
     if (!W) return;
     if (state === 'connected') { W.stop(); return; }
@@ -132,6 +134,7 @@
       if (actx.state === 'suspended') actx.resume();
     } catch (e) { actx = null; }
     setState('connecting');
+    if (!startSent) { startSent = true; sendEvent('start'); }
     W.start();
     clearTimeout(connectTimer);
     connectTimer = setTimeout(() => { if (state === 'connecting') { try { W.stop(); } catch (e) {} setState('failed'); } }, CONNECT_TIMEOUT);
