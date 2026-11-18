@@ -10,8 +10,9 @@ return [
   'smtp_secure' => '',
   'smtp_user' => 'site@example.ru',
   'smtp_pass' => 'test',
-  // ALLOALLO_STAGE_NEW / ALLOALLO_STAGE_CALLED — подменить стадии (название или код) для проверки
+  // ALLOALLO_STAGE_NEW / _STARTED / _CALLED — подменить стадии (название или код) для проверки
   'bitrix_stage_new' => getenv('ALLOALLO_STAGE_NEW') ?: 'Новый лид',
+  'bitrix_stage_started' => getenv('ALLOALLO_STAGE_STARTED') ?: 'Начал звонок',
   'bitrix_stage_called' => getenv('ALLOALLO_STAGE_CALLED') ?: 'Созвонился с агентом',
   'widget_url' => getenv('ALLOALLO_WIDGET') === 'off' ? '' : '/__mock/widget.js',
   'one_call_per_day' => getenv('ALLOALLO_ONE_CALL') !== 'off',
