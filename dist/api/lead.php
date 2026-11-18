@@ -32,13 +32,20 @@ $pkey = allo_phone_key($phone);
 $result = null;
 
 try {
-  // Один номер — одна заявка в сутки. Повторная отправка ведёт на ту же страницу звонка, без новой сделки.
-  // Если с номера уже поговорили и включено one_call_per_day, второй звонок не даём.
+  // Один номер — одна заявка в сутки. Повторная отправка ведёт на ту же страницу звонка, без новой сделки;
+  // страница звонка скажет, что заявка уже была (repeats), а если с номера уже поговорили и включено
+  // one_call_per_day — что разговор уже был и повторный будет завтра.
   allo_update('phones', $pkey, function ($saved) use (&$result, $cfg, $phone, $name, $site, $in, $utm, $now) {
     if ($saved && !empty($saved['code'])) {
       $rec = allo_read('codes', $saved['code']);
       if ($rec) {
-        if ($cfg['one_call_per_day'] && !empty($rec['calls'])) { $result = ['ok' => false, 'error' => 'already_called']; return null; }
+        allo_update('codes', $saved['code'], function ($r) use ($now) {
+          if (!$r) return null;
+          $r['repeats'] = ($r['repeats'] ?? 0) + 1;
+          $r['repeat_at'] = $now;
+          return $r;
+        });
+        allo_log('lead_repeat', ['code' => substr($saved['code'], 0, 8), 'deal' => $rec['deal'], 'called' => !empty($rec['calls'])]);
         $result = ['ok' => true, 'code' => $saved['code'], 'repeat' => true];
         return null;
       }

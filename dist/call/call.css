@@ -11,6 +11,7 @@
 .cp-lead{margin-top:16px;font-size:17px;line-height:1.55;color:var(--muted);max-width:42ch;text-wrap:pretty}
 
 .cp-btnwrap{position:relative;width:156px;height:156px;margin-top:44px;display:grid;place-items:center}
+.cp-btnwrap[hidden]{display:none}
 .cp-ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--call);opacity:0;pointer-events:none}
 .cp-btn{position:relative;width:156px;height:156px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--call);font-size:52px;
   box-shadow:0 18px 44px -10px rgba(22,163,74,.5);transition:background-color .2s ease-out,transform .2s ease-out,box-shadow .2s ease-out}
