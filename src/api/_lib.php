@@ -369,14 +369,31 @@ function allo_move_deal($deal, $key, $current = null) {
   return ['moved', $o[$to][1]];
 }
 
-// Контакт по телефону: есть — берём, нет — заводим.
+// Контакт: по телефону ищем существующий, но берём его, только если совпадает имя — номер мог попасть в
+// чужой контакт (общий рабочий телефон, тестовая карточка). Иначе заводим новый контакт с данными из формы.
+// Существующие контакты не меняем: имя из формы могли написать иначе, а карточку ведёт менеджер.
 function allo_contact($phone, $name) {
   $found = allo_bx('crm.duplicate.findbycomm', ['entity_type' => 'CONTACT', 'type' => 'PHONE', 'values' => ['+' . $phone]]);
-  if (!empty($found['CONTACT'][0])) return (int)$found['CONTACT'][0];
+  $ids = array_slice(array_map('intval', (array)($found['CONTACT'] ?? [])), 0, 20);
+  if ($ids && $name !== '') {
+    $list = allo_bx('crm.contact.list', ['order' => ['ID' => 'DESC'], 'filter' => ['ID' => $ids], 'select' => ['ID', 'NAME', 'LAST_NAME']]);
+    foreach ((array)$list as $c) if (allo_same_person($name, $c)) return (int)$c['ID'];
+  }
   $cfg = allo_config();
   $fields = ['NAME' => $name ?: 'Заявка с сайта', 'PHONE' => [['VALUE' => '+' . $phone, 'VALUE_TYPE' => 'WORK']], 'SOURCE_ID' => $cfg['bitrix_source_id']];
   if ($cfg['bitrix_assigned_by_id']) $fields['ASSIGNED_BY_ID'] = (int)$cfg['bitrix_assigned_by_id'];
   return (int)allo_bx('crm.contact.add', ['fields' => $fields]);
+}
+
+// Тот же человек: первое слово имени из формы совпадает с именем контакта (или с фамилией — «Иванов Пётр»),
+// без учёта регистра и ё/е. «Константин» = «Константин Бегенеев», «итоговый Тест» ≠ «Константин».
+function allo_same_person($formName, $contact) {
+  $words = preg_split('/\s+/u', allo_norm($formName), -1, PREG_SPLIT_NO_EMPTY);
+  $first = function ($v) { $w = preg_split('/\s+/u', allo_norm($v), -1, PREG_SPLIT_NO_EMPTY); return $w ? $w[0] : ''; };
+  $cn = $first($contact['NAME'] ?? '');
+  $cl = $first($contact['LAST_NAME'] ?? '');
+  if (!$words || ($cn === '' && $cl === '')) return false;
+  return $words[0] === $cn || ($cl !== '' && $words[0] === $cl) || (isset($words[1]) && $cn !== '' && $words[1] === $cn);
 }
 
 function allo_lines($pairs) {
