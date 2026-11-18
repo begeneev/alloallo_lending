@@ -75,7 +75,7 @@ $rec = allo_read('codes', $code);
 if (!$rec) allo_json(['ok' => true]);
 $n = count($rec['calls']);
 $summary = [
-  ['Разговор с агентом на сайте', $n > 1 ? 'состоялся (звонок ' . $n . ')' : 'состоялся'],
+  [empty($rec['demo']) ? 'Разговор с агентом на сайте' : 'Разговор с демо-агентом «' . (ALLO_DEMO_AGENTS[$rec['demo']] ?? $rec['demo']) . '»', $n > 1 ? 'состоялся (звонок ' . $n . ')' : 'состоялся'],
   ['Когда', allo_today_text() . ' МСК'],
   ['Длительность', allo_duration_text($finished['duration'])],
   ['Как закончился', $finished['reason'] === 'page_closed' ? 'страницу закрыли во время разговора' : 'положили трубку'],
