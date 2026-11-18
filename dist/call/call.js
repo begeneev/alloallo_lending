@@ -29,8 +29,14 @@
     unavailable: ['Звонок сейчас недоступен', 'Обновите страницу через минуту. Заявку мы уже получили'],
     not_configured: ['Звонок скоро заработает', 'Агента ещё настраиваем. Заявку мы получили и свяжемся с вами'],
     expired: ['Ссылка устарела', 'Ссылка на звонок действует сутки. Оставьте заявку на сайте ещё раз'],
-    used: ['По этой ссылке уже поговорили', 'Один разговор с номера в сутки. Если записались на демонстрацию — до встречи на ней'],
+    used: ['Повторный разговор — завтра', 'С одного номера — один разговор с агентом в сутки. Если записались на демонстрацию — до встречи на ней'],
     network: ['Не удалось открыть звонок', 'Проверьте интернет и обновите страницу']
+  };
+  // Повторная заявка с того же номера: новую не создаём, говорим об этом вверху страницы.
+  const AGAIN = {
+    lead: 'Вы уже оставляли заявку сегодня, новую мы не создавали. Поговорить с агентом можно по ней.',
+    usedTitle: 'уже оставляли заявку и поговорили с агентом',
+    usedLead: 'Заявка и итог разговора уже у нас, новую заявку мы не создавали.'
   };
   const ENDS = ['ended', 'expired', 'used', 'not_configured'];
 
@@ -53,6 +59,8 @@
     set('timer', state === 'connected' ? fmt((Date.now() - startedAt) / 1000) : '');
     const final = ENDS.includes(state) && !(state === 'ended' && repeat);
     btn.hidden = final;
+    // Звонка на этой странице не было (уже поговорили, ссылка устарела) — убираем и место под кнопку.
+    btn.parentElement.hidden = final && state !== 'ended';
     btn.disabled = ['loading', 'unavailable', 'connecting', 'network'].includes(state);
     btn.setAttribute('aria-label', state === 'connected' ? 'Завершить разговор' : state === 'connecting' ? 'Соединяем' : 'Позвонить агенту');
     const after = document.getElementById('cp-after');
@@ -190,9 +198,15 @@
     try {
       const r = await post('/api/call.php', { code });
       const j = await r.json().catch(() => ({}));
-      if (!j.ok) { setState(TEXT[j.error] ? j.error : 'network'); return; }
+      const title = document.getElementById('cp-title'), lead = document.querySelector('.cp-lead');
+      if (!j.ok) {
+        if (j.error === 'used') { title.textContent = (j.name ? j.name + ', вы ' : 'Вы ') + AGAIN.usedTitle; lead.textContent = AGAIN.usedLead; }
+        setState(TEXT[j.error] ? j.error : 'network');
+        return;
+      }
       repeat = !!j.repeat;
-      if (j.name) document.getElementById('cp-title').textContent = j.name + ', поговорите с агентом Аллоалло';
+      if (j.name) title.textContent = j.name + ', поговорите с агентом Аллоалло';
+      if (j.again) lead.textContent = AGAIN.lead;
       loadWidget(j.widget, j.context || {});
     } catch (e) {
       setState('network');

@@ -49,7 +49,6 @@ function showFormError(text) {
   el.hidden = !text;
 }
 const LEAD_ERRORS = {
-  already_called: 'С этого номера сегодня уже был разговор с агентом. Если остались вопросы, оставьте заявку завтра.',
   too_many: 'Слишком много заявок подряд. Попробуйте через час.',
   phone: phoneMessage,
   name: 'Введите имя.',

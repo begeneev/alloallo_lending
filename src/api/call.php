@@ -12,7 +12,8 @@ $code = $in['code'] ?? '';
 if (!allo_valid_code($code)) allo_json(['ok' => false, 'error' => 'expired'], 404);
 $rec = allo_read('codes', $code);
 if (!$rec) allo_json(['ok' => false, 'error' => 'expired'], 404);
-if ($cfg['one_call_per_day'] && !empty($rec['calls'])) allo_json(['ok' => false, 'error' => 'used'], 409);
+// С номера уже поговорили: страница скажет «вы уже оставляли заявку и поговорили с агентом».
+if ($cfg['one_call_per_day'] && !empty($rec['calls'])) allo_json(['ok' => false, 'error' => 'used', 'name' => $rec['name']], 409);
 if (!$cfg['widget_url']) allo_json(['ok' => false, 'error' => 'not_configured'], 503);
 
 allo_json([
@@ -20,6 +21,7 @@ allo_json([
   'widget' => $cfg['widget_url'],
   'name' => $rec['name'],
   'repeat' => !$cfg['one_call_per_day'],
+  'again' => !empty($rec['repeats']), // форму отправили ещё раз — новую заявку не создавали
   'context' => [
     'phone' => $rec['phone'],
     'imya' => $rec['name'],
