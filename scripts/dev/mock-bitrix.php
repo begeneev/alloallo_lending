@@ -16,7 +16,16 @@ $funnels = [
     ['C61:EXECUTING', 'Назначена консультация'], ['C61:WON', 'Сделка успешна', 'success'], ['C61:LOSE', 'Сделка провалена', 'failure']],
 ];
 switch ($method) {
-  case 'crm.duplicate.findbycomm': $r = []; break;
+  // Номер +79043174313 уже записан в чужой контакт «итоговый Тест», +79001112233 — в контакт «Иван Петров».
+  case 'crm.duplicate.findbycomm':
+    $known = ['+79043174313' => [101265], '+79001112233' => [12]];
+    $r = isset($known[$in['values'][0] ?? '']) ? ['CONTACT' => $known[$in['values'][0]]] : [];
+    break;
+  case 'crm.contact.list':
+    $people = [101265 => ['итоговый', 'Тест'], 12 => ['Иван', 'Петров']];
+    $r = [];
+    foreach ((array)($in['filter']['ID'] ?? []) as $id) if (isset($people[$id])) $r[] = ['ID' => (string)$id, 'NAME' => $people[$id][0], 'LAST_NAME' => $people[$id][1]];
+    break;
   case 'crm.contact.add': $r = 11; break;
   // Робот портала: на «Новый лид» отправляет сообщение в WhatsApp и переводит сделку на «Отправлено сообщение».
   case 'crm.deal.add': $r = 501; $s0 = $in['fields']['STAGE_ID'] ?? 'NEW'; file_put_contents($stageFile, $s0 === 'C61:NEW' ? 'C61:PREPARATION' : $s0); break;
