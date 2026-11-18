@@ -51,34 +51,10 @@ try {
       }
     }
     $code = bin2hex(random_bytes(16));
-    $rec = [
-      'phone' => $phone, 'name' => $name, 'site' => $site,
-      'task' => allo_str($in['task'] ?? '', 100) ?: 'Разговор с агентом и демонстрация',
-      'industry' => allo_str($in['industry'] ?? '', 100),
-      'page' => allo_str($in['page'] ?? '', 300),
-      'utm' => $utm, 'created' => $now, 'created_text' => allo_today_text() . ' МСК',
-      'deal' => null, 'bitrix_error' => null, 'calls' => [], 'expires' => $now + ALLO_DAY,
-    ];
-    // Сделка сразу после формы, копия заявки — на почту (mail_mode = always) или только при сбое Битрикса
-    // (fallback). Битрикс не настроен или не ответил — письмо помечено «внесите вручную», а сделку сервер
-    // попробует создать ещё раз после разговора (call-event.php).
-    // Заявка не дошла ни в Битрикс, ни на почту — звонок не открываем, форма покажет ошибку: заявка не теряется молча.
-    if (allo_bitrix_on()) {
-      try { $rec['deal'] = allo_create_deal($rec); }
-      catch (Throwable $e) { $rec['bitrix_error'] = allo_safe_error($e->getMessage()); allo_log('lead_bitrix_failed', ['error' => $rec['bitrix_error']]); }
-    }
-    $rec['mailed'] = false;
-    if (!$rec['deal']) {
-      $why = allo_bitrix_on() ? 'Битрикс24 не ответил (' . $rec['bitrix_error'] . ')' : 'Битрикс24 не подключён';
-      $rec['mailed'] = allo_lead_mail($rec, $why);
-      if (!$rec['mailed']) {
-        allo_log('lead_not_delivered', ['bitrix' => $rec['bitrix_error'] ?: 'not_configured']);
-        $result = ['ok' => false, 'error' => 'not_delivered'];
-        return null;
-      }
-    } elseif ($cfg['mail_mode'] === 'always') {
-      allo_lead_mail($rec, ''); // копия; не ушла — не страшно, заявка уже в Битриксе
-    }
+    $rec = allo_lead_record($phone, $name, $site, $in, $utm, allo_str($in['task'] ?? '', 100) ?: 'Разговор с агентом и демонстрация');
+    // Сделка сразу после формы, копия — на почту. Битрикс не настроен или не ответил — письмо «внесите вручную»,
+    // а сделку сервер попробует создать ещё раз после разговора (call-event.php).
+    if (!allo_deliver_lead($rec)) { $result = ['ok' => false, 'error' => 'not_delivered']; return null; }
     allo_write('codes', $code, $rec);
     allo_log('lead', ['code' => substr($code, 0, 8), 'deal' => $rec['deal'], 'task' => $rec['task']]);
     $result = ['ok' => true, 'code' => $code];

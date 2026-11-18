@@ -162,7 +162,7 @@ function allo_phone_key($phone) { return hash('sha256', 'alloallo|' . $phone); }
 
 // Удаляет просроченные записи (заявки старше двух суток). Вызывается изредка из lead.php.
 function allo_cleanup() {
-  foreach (['codes', 'phones', 'rate', 'cache'] as $sub) {
+  foreach (['codes', 'phones', 'demo', 'rate', 'cache'] as $sub) {
     $dir = allo_dir($sub);
     if (!$dir) continue;
     foreach (array_merge(glob($dir . '/*.json') ?: [], glob($dir . '/*.lock') ?: []) as $f) {
@@ -402,13 +402,64 @@ function allo_lines($pairs) {
   return implode("\n", $out);
 }
 
-// Сделка по заявке с сайта: «Аллоалло: Имя клиента», стадия bitrix_stage_new.
+// Демо-агенты страницы /demo/: ключ карточки (data-agent) → название для сделки, письма и агента.
+const ALLO_DEMO_AGENTS = [
+  'water' => 'Доставка воды «Чистый родник»',
+  'clinic' => 'Клиника «Здоровая семья»',
+  'auto' => 'Автосервис «Мастер Авто»',
+];
+
+// Запись заявки (хранится сутки под одноразовым кодом): данные формы, сделка и звонки.
+function allo_lead_record($phone, $name, $site, $in, $utm, $task) {
+  $now = time();
+  return [
+    'phone' => $phone, 'name' => $name, 'site' => $site,
+    'task' => $task,
+    'industry' => allo_str($in['industry'] ?? '', 100),
+    'page' => allo_str($in['page'] ?? '', 300),
+    'utm' => $utm, 'created' => $now, 'created_text' => allo_today_text() . ' МСК',
+    'deal' => null, 'bitrix_error' => null, 'calls' => [], 'expires' => $now + ALLO_DAY,
+  ];
+}
+
+// Новая заявка — в Битрикс24 (сделка) и копией на почту (mail_mode = always) или только при сбое Битрикса.
+// Не дошла ни туда, ни туда — false: звонок не открываем, форма покажет ошибку, заявка не теряется молча.
+function allo_deliver_lead(&$rec) {
+  if (allo_bitrix_on()) {
+    try { $rec['deal'] = allo_create_deal($rec); }
+    catch (Throwable $e) { $rec['bitrix_error'] = allo_safe_error($e->getMessage()); allo_log('lead_bitrix_failed', ['error' => $rec['bitrix_error']]); }
+  }
+  $rec['mailed'] = false;
+  if (!$rec['deal']) {
+    $why = allo_bitrix_on() ? 'Битрикс24 не ответил (' . $rec['bitrix_error'] . ')' : 'Битрикс24 не подключён';
+    $rec['mailed'] = allo_lead_mail($rec, $why);
+    if (!$rec['mailed']) { allo_log('lead_not_delivered', ['bitrix' => $rec['bitrix_error'] ?: 'not_configured']); return false; }
+  } elseif (allo_config()['mail_mode'] === 'always') {
+    allo_lead_mail($rec, ''); // копия; не ушла — не страшно, заявка уже в Битриксе
+  }
+  return true;
+}
+
+// Контекст звонка для виджета (атрибут data-alloallo-context): агент видит телефон и данные заявки.
+function allo_call_context($rec) {
+  return [
+    'phone' => $rec['phone'],
+    'imya' => $rec['name'],
+    'sait' => $rec['site'],
+    'sfera' => $rec['industry'],
+    'zayavka' => $rec['task'],
+    'deal' => $rec['deal'] ? (string)$rec['deal'] : '',
+    'segodnya' => allo_today_text(),
+  ];
+}
+
+// Сделка по заявке с сайта: «Аллоалло: Имя клиента» (с демо-страницы — «Аллоалло-Демо: Имя»), стадия bitrix_stage_new.
 function allo_create_deal($rec) {
   $cfg = allo_config();
   $st = allo_stages();
   $stage = $st['new'];
   $fields = [
-    'TITLE' => 'Аллоалло: ' . ($rec['name'] ?: '+' . $rec['phone']),
+    'TITLE' => (empty($rec['demo']) ? 'Аллоалло: ' : 'Аллоалло-Демо: ') . ($rec['name'] ?: '+' . $rec['phone']),
     'CATEGORY_ID' => $st['category'],
     'CONTACT_ID' => allo_contact($rec['phone'], $rec['name']),
     'SOURCE_ID' => $cfg['bitrix_source_id'],
@@ -532,14 +583,15 @@ function allo_lead_mail($rec, $why) {
   $utm = [];
   foreach ($rec['utm'] ?? [] as $k => $v) $utm[] = str_replace('utm_', '', $k) . '=' . $v;
   $who = ($rec['name'] ?: 'Без имени') . ', +' . $rec['phone'];
-  $subject = ($why ? 'Внесите вручную: ' : '') . 'Заявка с сайта Аллоалло — ' . $who;
+  $subject = ($why ? 'Внесите вручную: ' : '') . (empty($rec['demo']) ? 'Заявка с сайта Аллоалло — ' : 'Заявка на демо-звонок Аллоалло — ') . $who;
   $head = $why ? "Заявка НЕ попала в Битрикс24 — внесите её вручную.\nПричина: " . $why
     : 'Копия заявки. В Битрикс24 она уже есть: сделка №' . $rec['deal'] . '.';
   $text = $head . "\n\n" . allo_lines([
     ['Имя', $rec['name']], ['Телефон', '+' . $rec['phone']], ['Сайт компании', $rec['site']],
     ['Кнопка на сайте', $rec['task']], ['Сфера', $rec['industry']], ['Страница', $rec['page']], ['UTM', implode(', ', $utm)],
     ['Согласие на обработку ПД', 'да, ' . $rec['created_text']],
-  ]) . "\n\nЧеловек перешёл на страницу звонка агенту." . ($why ? ' Если он поговорит с агентом, итог придёт следующим письмом.' : '');
+  ]) . (empty($rec['demo']) ? "\n\nЧеловек перешёл на страницу звонка агенту." : "\n\nЧеловеку открыт звонок демо-агенту на странице /demo/.")
+    . ($why ? ' Если он поговорит с агентом, итог придёт следующим письмом.' : '');
   return allo_mail($subject, $text);
 }
 

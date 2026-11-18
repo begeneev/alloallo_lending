@@ -43,13 +43,5 @@ allo_json([
   'name' => $rec['name'],
   'repeat' => !$cfg['one_call_per_day'],
   'again' => !empty($rec['repeats']), // форму отправили ещё раз — новую заявку не создавали
-  'context' => [
-    'phone' => $rec['phone'],
-    'imya' => $rec['name'],
-    'sait' => $rec['site'],
-    'sfera' => $rec['industry'],
-    'zayavka' => $rec['task'],
-    'deal' => $rec['deal'] ? (string)$rec['deal'] : '',
-    'segodnya' => allo_today_text(),
-  ] + allo_free_slots($cfg['slots_url'] ?? 'https://nextbot-demo.i-am-ivan-perov.workers.dev/slots'),
+  'context' => allo_call_context($rec) + allo_free_slots($cfg['slots_url'] ?? 'https://nextbot-demo.i-am-ivan-perov.workers.dev/slots'),
 ]);
