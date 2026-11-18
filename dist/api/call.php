@@ -16,6 +16,27 @@ if (!$rec) allo_json(['ok' => false, 'error' => 'expired'], 404);
 if ($cfg['one_call_per_day'] && !empty($rec['calls'])) allo_json(['ok' => false, 'error' => 'used', 'name' => $rec['name']], 409);
 if (!$cfg['widget_url']) allo_json(['ok' => false, 'error' => 'not_configured'], 503);
 
+// Свободные часы календаря менеджера для агента: какой день и час он предложит на демонстрацию.
+// Отдает сервис nextbot-demo (функции записи агента живут там же), ответ из кэша за ~0,3 с.
+// Не ответил — звонок открывается без них: агент спросит удобное время сам.
+function allo_free_slots($url) {
+  if (!$url) return [];
+  $raw = false;
+  if (function_exists('curl_init')) {
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 2, CURLOPT_TIMEOUT => 5]);
+    $raw = curl_exec($ch);
+    curl_close($ch);
+  } else {
+    $raw = @file_get_contents($url, false, stream_context_create(['http' => ['timeout' => 5, 'ignore_errors' => true]]));
+  }
+  $j = is_string($raw) ? json_decode($raw, true) : null;
+  $out = [];
+  foreach (['sloty', 'varianty', 'den1', 'den2'] as $k) if (is_array($j) && isset($j[$k]) && is_string($j[$k])) $out[$k] = $j[$k];
+  if (!$out) allo_log('slots_failed', []);
+  return $out;
+}
+
 allo_json([
   'ok' => true,
   'widget' => $cfg['widget_url'],
@@ -30,5 +51,5 @@ allo_json([
     'zayavka' => $rec['task'],
     'deal' => $rec['deal'] ? (string)$rec['deal'] : '',
     'segodnya' => allo_today_text(),
-  ],
+  ] + allo_free_slots($cfg['slots_url'] ?? 'https://nextbot-demo.i-am-ivan-perov.workers.dev/slots'),
 ]);
