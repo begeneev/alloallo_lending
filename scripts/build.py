@@ -7,7 +7,7 @@ origin=json.loads((root/'site.json').read_text())['origin'].rstrip('/')
 (root/'dist').mkdir(exist_ok=True)
 page=(root/'src/index.html').read_text().replace('__SITE_ORIGIN__',origin)
 (root/'dist/index.html').write_text(page)
-for name in ('app.js','styles.css'):
+for name in ('app.js','phone.js','styles.css'):
  shutil.copyfile(root/'src'/name,root/'dist'/name)
 # Folders copied as is: call page (/call/), server part on PHP (/api/), recordings of the agent (/audio/),
 # demo agents page (/demo/, maintained separately, not edited here).

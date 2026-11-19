@@ -65,7 +65,8 @@ h1 span{color:var(--purple)}
 .card[data-state="idle"] .ring.r2,.card[data-state="ready"] .ring.r2{animation:ripple 2.6s ease-out 1.3s infinite}
 
 .lead{margin-top:22px;display:grid;gap:10px}
-.lead .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lead .row{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.lead{--pf-h:46px;--pf-border:var(--line);--pf-radius:12px;--pf-bg:var(--soft);--pf-size:15px;--pf-focus:var(--purple)}
 .lead input[name="name"],.lead input[name="phone"]{width:100%;min-width:0;height:46px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font:inherit;font-size:15px;color:var(--ink);background:var(--soft);transition:border-color .2s,background .2s}
 .lead input[name="name"]:focus,.lead input[name="phone"]:focus{outline:none;border-color:var(--purple);background:#fff}
 .lead input[aria-invalid="true"]{border-color:var(--red)}
@@ -87,7 +88,6 @@ h1 span{color:var(--purple)}
 .sub{margin-top:3px;font-size:13px;line-height:1.45;color:var(--muted)}
 
 @media (max-width:1020px){.grid{grid-template-columns:1fr;max-width:620px}.intro{flex-direction:column;align-items:flex-start;gap:16px}}
-@media (max-width:420px){.lead .row{grid-template-columns:1fr}}
 @media (max-width:640px){.container{width:calc(100% - 32px)}.header{height:72px}.brand{font-size:24px}.intro{padding:40px 0 28px}.card{padding:24px 20px 22px}.card h2{font-size:26px}.grid{padding-bottom:56px}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
@@ -146,6 +146,7 @@ h1 span{color:var(--purple)}
     </article>
   </section>
 </main>
+<script src="/phone.js"></script>
 <script>
 /* Доступ к звонку — после заявки: в каждой карточке своя форма (имя, телефон, согласие). Заявка уходит на
    /api/demo-lead.php (сделка «Аллоалло-Демо: Имя» в Битрикс24, одна на номер); ответ — код заявки и контекст
@@ -273,33 +274,37 @@ h1 span{color:var(--purple)}
 
   // Формы контактов: своя в каждой карточке. Поля — через elements (у формы f.name — её собственное имя).
   const field = (f, k) => f.elements.namedItem(k);
-  function unlock(i, j, name, phone) {
+  // Поле телефона с кодом страны и маской (phone.js); в карточке после заявки — номер как его ввели.
+  const phoneOf = (f) => AlloPhone.get(field(f, 'phone'));
+  const pretty = (f) => { const p = phoneOf(f), c = p.country(); return (c.code ? '+' + c.code + ' ' : '') + p.input.value; };
+  function unlock(i, j, name, phone, shown) {
     const c = cards[i], f = c.querySelector('.lead');
     f.hidden = true;
     let whom = c.querySelector('.whom');
     if (!whom) { whom = document.createElement('p'); whom.className = 'whom'; f.after(whom); }
     whom.textContent = '';
-    whom.append('Заявка: ', Object.assign(document.createElement('b'), { textContent: name }), ', ' + phone);
+    whom.append('Заявка: ', Object.assign(document.createElement('b'), { textContent: name }), ', ' + shown);
     if (j.used) { setState(i, 'used'); return; }
     leads[i] = { code: j.code, context: j.context || {}, again: !!j.repeat_call, started: false };
     setState(i, 'idle');
     // В пустые формы других карточек подставляем те же имя и телефон: отправить их всё равно нужно самому.
-    cards.forEach((o) => { const of = o.querySelector('.lead'); if (of.hidden) return; ['name', 'phone'].forEach((k) => { const x = field(of, k); if (!x.value) x.value = k === 'name' ? name : phone; }); });
+    cards.forEach((o) => { const of = o.querySelector('.lead'); if (of.hidden) return; const n = field(of, 'name'); if (!n.value) n.value = name; if (!field(of, 'phone').value) phoneOf(of).set(phone); });
   }
+  cards.forEach((c) => AlloPhone.attach(field(c.querySelector('.lead'), 'phone')));
   cards.forEach((c, i) => {
     const f = c.querySelector('.lead'), err = f.querySelector('.err'), go = f.querySelector('.go');
     const showErr = (t) => { err.textContent = t; err.hidden = !t; };
     f.addEventListener('input', (e) => { e.target.removeAttribute('aria-invalid'); showErr(''); });
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = field(f, 'name').value.trim(), phone = field(f, 'phone').value.trim(), digits = phone.replace(/\D/g, '');
-      const bad = !name ? ['name', ERR.name] : (digits.length < 10 || digits.length > 15 || !/^\+?[0-9 ()–-]+$/.test(phone)) ? ['phone', ERR.phone] : !field(f, 'consent').checked ? ['consent', ERR.consent] : null;
+      const name = field(f, 'name').value.trim(), pr = phoneOf(f).check(), phone = pr.value;
+      const bad = !name ? ['name', ERR.name] : !pr.ok ? ['phone', pr.message] : !field(f, 'consent').checked ? ['consent', ERR.consent] : null;
       if (bad) { showErr(bad[1]); if (bad[0] !== 'consent') field(f, bad[0]).setAttribute('aria-invalid', 'true'); field(f, bad[0]).focus(); return; }
       go.disabled = true; go.textContent = 'Отправляем…'; showErr('');
       try {
         const r = await post('/api/demo-lead.php', { agent: c.dataset.agent, name, phone, consent: true, company_extra: field(f, 'company_extra').value, page: location.href, utm });
         const j = await r.json().catch(() => ({}));
-        if (j.ok) unlock(i, j, name, phone);
+        if (j.ok) unlock(i, j, name, phone, pretty(f));
         else showErr(ERR[j.error] || ERR.other);
       } catch (x) { showErr(ERR.net); }
       go.disabled = false; go.textContent = 'Открыть звонок';

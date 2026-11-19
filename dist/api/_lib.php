@@ -90,8 +90,15 @@ function allo_str($v, $max) {
 }
 
 // Только российская аудитория, но номер принимаем в любом виде: 8XXXXXXXXXX и XXXXXXXXXX → 7XXXXXXXXXX.
+// Телефон цифрами с кодом страны. Номер с «+» (так шлют формы с выбором страны) берётся как есть: 8–15 цифр,
+// у +7 — ровно 11. Без «+» — по-старому: 8… и 10 цифр приводятся к российскому 7….
 function allo_phone($raw) {
-  $d = preg_replace('/\D/', '', (string)$raw);
+  $raw = trim((string)$raw);
+  $d = preg_replace('/\D/', '', $raw);
+  if ($raw !== '' && $raw[0] === '+') {
+    if (strlen($d) < 8 || strlen($d) > 15 || $d[0] === '0') return '';
+    return ($d[0] === '7' && strlen($d) !== 11) ? '' : $d;
+  }
   if (strlen($d) === 11 && $d[0] === '8') $d = '7' . substr($d, 1);
   if (strlen($d) === 10) $d = '7' . $d;
   return (strlen($d) >= 11 && strlen($d) <= 15) ? $d : '';
