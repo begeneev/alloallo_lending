@@ -182,8 +182,9 @@ form label.consent input{width:18px;height:18px;margin:1px 0 0;padding:0;flex:no
 /* Документы: ссылки в подвале и в подписи согласия в форме. */
 .footer-legal{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:12px}
 .footer-legal a{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
-.footer-legal a:hover,#contact-form .consent a:hover{color:var(--purple)}
-#contact-form .consent a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.footer-legal a:hover{color:var(--purple)}
+#contact-form .consent a{color:var(--purple);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+#contact-form .consent a:hover{color:var(--purple-dark);text-decoration-thickness:2px}
 /* С кодом страны полю телефона нужно место: на узких экранах имя и телефон друг под другом. */
 @media(max-width:520px){#contact-form .form-row{grid-template-columns:minmax(0,1fr)}}
 #contact-form .form-row{align-items:stretch}
