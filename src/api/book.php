@@ -4,6 +4,7 @@
 // («Назначена консультация»), копия на почту. Звонка агенту здесь нет: время подтверждает менеджер.
 // Если за последние сутки с этого номера уже была заявка (главная, /demo/ или прошлая запись) — новую сделку
 // не заводим: в ту же сделку пишем комментарий с выбранным временем и переводим её на эту стадию (только вперёд).
+// Не вышло обновить ту сделку (удалили, нет доступа) — заводим новую.
 require __DIR__ . '/_lib.php';
 
 const ALLO_BOOK_SLOTS = ['10-12' => '10:00–12:00', '12-14' => '12:00–14:00', '14-16' => '14:00–16:00', '16-18' => '16:00–18:00'];
@@ -66,22 +67,25 @@ try {
     }
     if (!$deal) $deal = allo_read('demo', $pkey)['deal'] ?? null;
 
+    // Сделку могли удалить или перенести так, что вебхук её не видит: тогда заводим новую, иначе запись потеряется.
+    $updated = false;
     if ($deal) {
-      $rec['deal'] = $deal;
-      $rec['mailed'] = false;
-      $stage = '';
       try {
+        $stage = allo_move_deal($deal, 'booked')[0];
         allo_deal_comment($deal, allo_lines([
           ['Запись на демонстрацию', $slotText], ['Имя', $name], ['Телефон', '+' . $phone], ['Сайт компании', $site],
           ['Согласие на обработку ПД', 'да, ' . $rec['created_text']],
         ]));
-        $stage = allo_move_deal($deal, 'booked')[0];
+        $updated = true;
+        $rec['deal'] = $deal;
+        $rec['mailed'] = false;
+        if ($cfg['mail_mode'] === 'always') allo_lead_mail($rec, '');
+        allo_log('book_repeat', ['deal' => $deal, 'stage' => $stage, 'slot' => $slotText]);
       } catch (Throwable $e) {
         allo_log('book_update_failed', ['deal' => $deal, 'error' => allo_safe_error($e->getMessage())]);
       }
-      if ($cfg['mail_mode'] === 'always') allo_lead_mail($rec, '');
-      allo_log('book_repeat', ['deal' => $deal, 'stage' => $stage, 'slot' => $slotText]);
-    } else {
+    }
+    if (!$updated) {
       if (!allo_deliver_lead($rec)) { $result = ['ok' => false, 'error' => 'not_delivered']; return null; }
       allo_log('book', ['deal' => $rec['deal'], 'slot' => $slotText]);
     }
