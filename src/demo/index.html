@@ -76,6 +76,9 @@ h1 span{color:var(--purple)}
 .lead .go:hover{background:#000}
 .lead .go:disabled{background:#9c9ca6;cursor:progress}
 .lead .err{padding:9px 12px;border-radius:10px;background:#fdecec;color:#a61b1b;font-size:13px;line-height:1.45}
+.lead .consent a,.legal a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.lead .consent a:hover,.legal a:hover{color:var(--purple)}
+.legal{display:flex;flex-wrap:wrap;gap:8px 24px;padding:0 0 40px;font-size:13px;color:var(--muted)}
 .lead .hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
 .lead.nudge{animation:nudge .4s ease-in-out}
 @keyframes nudge{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
@@ -109,7 +112,7 @@ h1 span{color:var(--purple)}
       <form class="lead" novalidate>
         <div class="hp" aria-hidden="true"><input name="company_extra" tabindex="-1" autocomplete="off"></div>
         <div class="row"><input name="name" autocomplete="name" maxlength="100" placeholder="Ваше имя" aria-label="Имя" required><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Телефон" aria-label="Телефон" required></div>
-        <label class="consent"><input type="checkbox" name="consent" required><span>Согласен на обработку персональных данных для демо-звонка</span></label>
+        <label class="consent"><input type="checkbox" name="consent" required><span>Согласен на <a href="/privacy/" target="_blank" rel="noopener">обработку персональных данных</a> для демо-звонка в соответствии с <a href="/policy/" target="_blank" rel="noopener">политикой обработки персональных данных</a></span></label>
         <p class="err" role="alert" hidden></p>
         <button type="submit" class="go">Открыть звонок</button>
       </form>
@@ -123,7 +126,7 @@ h1 span{color:var(--purple)}
       <form class="lead" novalidate>
         <div class="hp" aria-hidden="true"><input name="company_extra" tabindex="-1" autocomplete="off"></div>
         <div class="row"><input name="name" autocomplete="name" maxlength="100" placeholder="Ваше имя" aria-label="Имя" required><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Телефон" aria-label="Телефон" required></div>
-        <label class="consent"><input type="checkbox" name="consent" required><span>Согласен на обработку персональных данных для демо-звонка</span></label>
+        <label class="consent"><input type="checkbox" name="consent" required><span>Согласен на <a href="/privacy/" target="_blank" rel="noopener">обработку персональных данных</a> для демо-звонка в соответствии с <a href="/policy/" target="_blank" rel="noopener">политикой обработки персональных данных</a></span></label>
         <p class="err" role="alert" hidden></p>
         <button type="submit" class="go">Открыть звонок</button>
       </form>
@@ -137,7 +140,7 @@ h1 span{color:var(--purple)}
       <form class="lead" novalidate>
         <div class="hp" aria-hidden="true"><input name="company_extra" tabindex="-1" autocomplete="off"></div>
         <div class="row"><input name="name" autocomplete="name" maxlength="100" placeholder="Ваше имя" aria-label="Имя" required><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Телефон" aria-label="Телефон" required></div>
-        <label class="consent"><input type="checkbox" name="consent" required><span>Согласен на обработку персональных данных для демо-звонка</span></label>
+        <label class="consent"><input type="checkbox" name="consent" required><span>Согласен на <a href="/privacy/" target="_blank" rel="noopener">обработку персональных данных</a> для демо-звонка в соответствии с <a href="/policy/" target="_blank" rel="noopener">политикой обработки персональных данных</a></span></label>
         <p class="err" role="alert" hidden></p>
         <button type="submit" class="go">Открыть звонок</button>
       </form>
@@ -145,6 +148,7 @@ h1 span{color:var(--purple)}
         <div aria-live="polite"><p class="status"><span data-t="status">Оставьте контакты</span><span class="timer" data-t="timer"></span></p><p class="sub" data-t="sub">Запишитесь на смену шин</p></div></div>
     </article>
   </section>
+  <footer class="legal"><span>© 2026 Аллоалло</span><a href="/policy/">Политика обработки персональных данных</a><a href="/privacy/">Согласие на обработку персональных данных</a></footer>
 </main>
 <script src="/phone.js"></script>
 <script>
