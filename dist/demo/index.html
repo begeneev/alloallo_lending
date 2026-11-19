@@ -76,8 +76,10 @@ h1 span{color:var(--purple)}
 .lead .go:hover{background:#000}
 .lead .go:disabled{background:#9c9ca6;cursor:progress}
 .lead .err{padding:9px 12px;border-radius:10px;background:#fdecec;color:#a61b1b;font-size:13px;line-height:1.45}
-.lead .consent a,.legal a{color:inherit;text-decoration:underline;text-underline-offset:2px}
-.lead .consent a:hover,.legal a:hover{color:var(--purple)}
+.legal a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.legal a:hover{color:var(--purple)}
+.lead .consent a{color:var(--purple);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+.lead .consent a:hover{color:var(--purple-dark);text-decoration-thickness:2px}
 .legal{display:flex;flex-wrap:wrap;gap:8px 24px;padding:0 0 40px;font-size:13px;color:var(--muted)}
 .lead .hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
 .lead.nudge{animation:nudge .4s ease-in-out}
@@ -150,7 +152,7 @@ h1 span{color:var(--purple)}
   </section>
   <footer class="legal"><span>© 2026 Аллоалло</span><a href="/policy/">Политика обработки персональных данных</a><a href="/privacy/">Согласие на обработку персональных данных</a></footer>
 </main>
-<script src="/phone.js"></script>
+<script src="/phone.js?v=87fee35959"></script>
 <script>
 /* Доступ к звонку — после заявки: в каждой карточке своя форма (имя, телефон, согласие). Заявка уходит на
    /api/demo-lead.php (сделка «Аллоалло-Демо: Имя» в Битрикс24, одна на номер); ответ — код заявки и контекст
