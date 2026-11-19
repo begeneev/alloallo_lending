@@ -15,11 +15,8 @@ function openContact(task, industry) {
   dialog.showModal();
 }
 $$('[data-contact]').forEach(b => b.addEventListener('click', () => openContact(b.dataset.task, b.dataset.industry)));
-/* Both dialogs (request and booking): close with the cross or a click on the backdrop. */
-$$('dialog').forEach(d => {
-  d.querySelector('.dialog-close').addEventListener('click', () => d.close());
-  d.addEventListener('click', e => { if (e.target === d) { const r = d.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) d.close(); } });
-});
+$('#contact-dialog .dialog-close').addEventListener('click', () => dialog.close());
+dialog.addEventListener('click', e => { if (e.target === dialog) { const r = dialog.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dialog.close(); } });
 
 /* UTM tags of the visit go into the deal. Kept for the tab in case the visitor opens the form later. */
 const utm = (() => {
@@ -99,134 +96,18 @@ function openFromHash() {
 openFromHash();
 window.addEventListener('hashchange', openFromHash);
 
-/* Booking a demonstration: name, phone, site, a working day and a time slot (Moscow time) → /api/book.php
-   (deal in Bitrix24 at the «Назначена консультация» stage). No call page: a manager confirms the time. */
-const bookDialog = $('#book-dialog'), bookForm = $('#book-form');
-const bookPhone = window.AlloPhone ? AlloPhone.attach($('#book-form [name=phone]')) : null;
-const BOOK_DAYS = 8;
-const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
-const SLOT_LAST = 16; // the last slot starts at 16:00
-/* Today's date and hour in Moscow, whatever the visitor's own time zone. */
-function moscowNow() {
-  const p = {};
-  new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
-    .formatToParts(new Date()).forEach(x => { p[x.type] = x.value; });
-  return { y: +p.year, m: +p.month, d: +p.day, h: +p.hour };
-}
-/* A slot of today can still be booked if it starts at least an hour from now. */
-const slotOpen = (from, isToday, hour) => !isToday || from >= hour + 1;
-function renderBookDays() {
-  const now = moscowNow(), base = Date.UTC(now.y, now.m - 1, now.d), box = $('#book-days');
-  const keep = box.querySelector('input:checked')?.value;
-  box.textContent = '';
-  for (let i = 0, n = 0; n < BOOK_DAYS && i < 21; i++) {
-    const day = new Date(base + i * 864e5), wd = day.getUTCDay();
-    if (wd === 0 || wd === 6) continue;
-    if (i === 0 && !slotOpen(SLOT_LAST, true, now.h)) continue;
-    const value = day.toISOString().slice(0, 10);
-    const label = document.createElement('label'), input = document.createElement('input'), span = document.createElement('span'), small = document.createElement('small');
-    input.type = 'radio'; input.name = 'date'; input.value = value; input.dataset.today = i === 0 ? '1' : '';
-    small.textContent = i === 0 ? 'сегодня' : i === 1 ? 'завтра' : WEEKDAYS[wd];
-    span.append(day.getUTCDate() + ' ' + MONTHS[day.getUTCMonth()], small);
-    label.append(input, span);
-    box.append(label);
-    if (value === keep) input.checked = true;
-    n++;
-  }
-  updateBookSlots();
-}
-function updateBookSlots() {
-  const day = [...$$('#book-days input')].find(i => i.checked), isToday = !!(day && day.dataset.today), h = moscowNow().h;
-  $$('#book-slots input').forEach(s => {
-    s.disabled = !slotOpen(+s.dataset.from, isToday, h);
-    if (s.disabled) s.checked = false;
-  });
-}
-$('#book-days').addEventListener('change', () => { updateBookSlots(); showBookError(''); });
-$('#book-slots').addEventListener('change', () => showBookError(''));
-
-function showBookError(text) { const el = $('#book-error'); el.textContent = text; el.hidden = !text; }
-function validateBookField(input) {
-  input.setCustomValidity('');
-  if (input.name === 'phone') {
-    const r = bookPhone ? bookPhone.validate() : { ok: input.value.replace(/\D/g, '').length >= 10, message: phoneMessage };
-    if (!r.ok) input.setCustomValidity(r.message);
-  } else if (input.name === 'name' && !input.value.trim()) input.setCustomValidity('Введите имя.');
-  else if (input.name === 'consent' && !input.checked) input.setCustomValidity('Подтвердите согласие, чтобы отправить заявку.');
-}
-$$('#book-form input').forEach(input => {
-  input.addEventListener('input', () => validateBookField(input));
-  input.addEventListener('change', () => validateBookField(input));
+/* Booking a demonstration lives in book.js (shared with /demo/ and /call/). Contacts typed into the call form
+   carry over to the booking window, and after booking the window offers the call form with the same contacts. */
+window.alloBookData = () => ({
+  name: $('#contact-form [name=name]').value, site: $('#contact-form [name=site]').value,
+  phone: phoneField && phoneField.validate().ok ? phoneField.validate().value : ''
 });
-
-function openBooking() {
-  showBookError('');
-  // Contacts already typed into the other form carry over.
-  const cName = $('#contact-form [name=name]'), bName = $('#book-form [name=name]');
-  if (!bName.value.trim() && cName.value.trim()) bName.value = cName.value.trim();
-  const cSite = $('#contact-form [name=site]'), bSite = $('#book-form [name=site]');
-  if (!bSite.value.trim() && cSite.value.trim()) bSite.value = cSite.value.trim();
-  if (bookPhone && phoneField && !bookPhone.validate().ok && phoneField.validate().ok) bookPhone.set(phoneField.validate().value);
-  renderBookDays();
-  $('#book-view').hidden = false; $('#book-done').hidden = true;
-  bookDialog.showModal();
-}
-$$('[data-book]').forEach(b => b.addEventListener('click', openBooking));
-$('#book-close').addEventListener('click', () => bookDialog.close());
-$('#book-to-agent').addEventListener('click', () => {
-  bookDialog.close();
-  const set = (n) => { const v = $('#book-form [name=' + n + ']').value.trim(), f = $('#contact-form [name=' + n + ']'); if (v && !f.value.trim()) f.value = v; };
-  set('name'); set('site');
-  if (bookPhone && phoneField && !phoneField.validate().ok && bookPhone.validate().ok) phoneField.set(bookPhone.validate().value);
+window.alloBookToAgent = (d) => {
+  const set = (n, v) => { const f = $('#contact-form [name=' + n + ']'); if (v && !f.value.trim()) f.value = v; };
+  set('name', d.name); set('site', d.site);
+  if (d.phone && phoneField && !phoneField.validate().ok) phoneField.set(d.phone);
   openContact();
-});
-
-const BOOK_ERRORS = Object.assign({}, LEAD_ERRORS, { slot: 'Выберите день и время ещё раз: этот интервал уже недоступен.' });
-const BOOK_LABEL = 'Записаться';
-bookForm.addEventListener('submit', async e => {
-  e.preventDefault();
-  const button = bookForm.querySelector('[type=submit]');
-  $$('#book-form input').forEach(validateBookField);
-  if (bookPhone) bookPhone.check();
-  if (!bookForm.reportValidity() || button.disabled) return;
-  const f = new FormData(bookForm);
-  if (!f.get('date')) { showBookError('Выберите удобный день.'); return; }
-  if (!f.get('slot')) { showBookError('Выберите удобное время.'); return; }
-  showBookError('');
-  const payload = {
-    name: f.get('name'), phone: bookPhone ? bookPhone.validate().value : f.get('phone'), site: f.get('site'), consent: f.get('consent') === 'on',
-    date: f.get('date'), slot: f.get('slot'), task: f.get('task'), company_extra: f.get('company_extra'),
-    page: location.origin + location.pathname, utm
-  };
-  button.disabled = true; button.textContent = 'Записываем…';
-  try {
-    const r = await fetch('/api/book.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    const j = await r.json().catch(() => ({}));
-    if (j.ok) {
-      const text = $('#book-done-text'), when = document.createElement('strong');
-      when.textContent = j.slot_text || '';
-      text.textContent = '';
-      text.append(String(payload.name).trim() + ', ждём вас на демонстрации: ', when, '. Менеджер позвонит, чтобы подтвердить время.');
-      $('#book-view').hidden = true; $('#book-done').hidden = false;
-      button.disabled = false; button.textContent = BOOK_LABEL;
-      return;
-    }
-    if (j.error === 'slot') renderBookDays();
-    showBookError(BOOK_ERRORS[j.error] || 'Не удалось записаться. Попробуйте ещё раз через минуту.');
-  } catch (err) {
-    showBookError('Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.');
-  }
-  button.disabled = false; button.textContent = BOOK_LABEL;
-});
-/* Link straight to the booking form: аллоалло.рф/#demonstraciya */
-function openBookingFromHash() {
-  if (location.hash !== '#demonstraciya') return;
-  history.replaceState(null, '', location.pathname + location.search);
-  if (!bookDialog.open) openBooking();
-}
-openBookingFromHash();
-window.addEventListener('hashchange', openBookingFromHash);
+};
 
 /* Mobile menu. */
 function closeMenu() { $('#navlinks').classList.remove('open'); $('.menu-toggle').setAttribute('aria-expanded', 'false'); $('.menu-toggle').setAttribute('aria-label', 'Открыть меню'); }

@@ -9,6 +9,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%236547ef'/%3E%3Cpath d='M17 26v12m10-20v28m10-24v20m10-15v10' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;550;600;700;750&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/book.css">
 <style>
 /* Цвета, шрифт и знак — как у лендинга Аллоалло (src/styles.css). */
 :root{--call:#16a34a;--call-dark:#15803d;--purple:#6547ef;--purple-dark:#5234d6;--ink:#20212a;--muted:#737480;--line:#e9e9ee;--soft:#f6f6f9;--lime:#d8f89b;--red:#e5484d;--red-dark:#cc3a3f;--radius:24px;--lvl:0;color-scheme:light}
@@ -80,6 +81,14 @@ h1 span{color:var(--purple)}
 .legal a:hover{color:var(--purple)}
 .lead .consent a{color:var(--purple);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
 .lead .consent a:hover{color:var(--purple-dark);text-decoration-thickness:2px}
+/* Запись на демонстрацию (окно — /book.js): полоса под карточками. */
+.book-cta{display:flex;align-items:center;justify-content:space-between;gap:20px 32px;flex-wrap:wrap;margin:-56px 0 56px;padding:28px 32px;border-radius:var(--radius);background:var(--soft)}
+.book-cta h2{font-size:24px;font-weight:550;letter-spacing:-.03em;line-height:1.2}
+.book-cta p{margin-top:6px;font-size:15px;line-height:1.6;color:var(--muted);max-width:52ch}
+.book-cta button{flex:none;height:50px;padding:0 26px;border:0;border-radius:12px;background:var(--purple);color:#fff;font-size:15px;font-weight:600;transition:background .2s,transform .2s}
+.book-cta button:hover{background:var(--purple-dark);transform:translateY(-2px)}
+.book-cta button:focus-visible{outline:3px solid var(--ink);outline-offset:4px}
+@media (max-width:640px){.book-cta{margin:-24px 0 40px;padding:22px 20px}.book-cta h2{font-size:21px}.book-cta button{width:100%}}
 .legal{display:flex;flex-wrap:wrap;gap:8px 24px;padding:0 0 40px;font-size:13px;color:var(--muted)}
 .lead .hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
 .lead.nudge{animation:nudge .4s ease-in-out}
@@ -150,9 +159,14 @@ h1 span{color:var(--purple)}
         <div aria-live="polite"><p class="status"><span data-t="status">Оставьте контакты</span><span class="timer" data-t="timer"></span></p><p class="sub" data-t="sub">Запишитесь на смену шин</p></div></div>
     </article>
   </section>
+  <section class="book-cta" aria-labelledby="book-cta-title">
+    <div><h2 id="book-cta-title">Хотите такого агента для своей компании?</h2><p>Запишитесь на демонстрацию: покажем агента, подготовленного по вашему сайту. Выберите удобный день и время — менеджер перезвонит.</p></div>
+    <button type="button" data-book data-task="Запись на демонстрацию (/demo/)">Записаться на демонстрацию</button>
+  </section>
   <footer class="legal"><span>© 2026 Аллоалло</span><a href="/policy/">Политика обработки персональных данных</a><a href="/privacy/">Согласие на обработку персональных данных</a></footer>
 </main>
 <script src="/phone.js"></script>
+<script src="/book.js" defer></script>
 <script>
 /* Доступ к звонку — после заявки: в каждой карточке своя форма (имя, телефон, согласие). Заявка уходит на
    /api/demo-lead.php (сделка «Аллоалло-Демо: Имя» в Битрикс24, одна на номер); ответ — код заявки и контекст
@@ -290,6 +304,7 @@ h1 span{color:var(--purple)}
     if (!whom) { whom = document.createElement('p'); whom.className = 'whom'; f.after(whom); }
     whom.textContent = '';
     whom.append('Заявка: ', Object.assign(document.createElement('b'), { textContent: name }), ', ' + shown);
+    window.alloBookData = { name, phone }; // окно записи на демонстрацию (/book.js) подставит эти контакты
     if (j.used) { setState(i, 'used'); return; }
     leads[i] = { code: j.code, context: j.context || {}, again: !!j.repeat_call, started: false };
     setState(i, 'idle');

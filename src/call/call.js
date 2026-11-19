@@ -69,6 +69,8 @@
     link.href = state === 'expired' ? '/#zayavka' : '/';
     link.textContent = state === 'expired' ? 'Оставить заявку' : 'Вернуться на сайт';
     document.getElementById('cp-tips').hidden = final || state === 'connected';
+    // Запись на демонстрацию — всегда, кроме самого разговора.
+    document.getElementById('cp-book').hidden = state === 'connected' || state === 'connecting';
   }
 
   function setState(s) {
@@ -201,10 +203,14 @@
       const title = document.getElementById('cp-title'), lead = document.querySelector('.cp-lead');
       if (!j.ok) {
         if (j.error === 'used') { title.textContent = (j.name ? j.name + ', вы ' : 'Вы ') + AGAIN.usedTitle; lead.textContent = AGAIN.usedLead; }
+        if (j.name) window.alloBookData = { name: j.name };
         setState(TEXT[j.error] ? j.error : 'network');
         return;
       }
       repeat = !!j.repeat;
+      // Окно записи на демонстрацию (book.js) подставит контакты из заявки.
+      const ctx = j.context || {};
+      window.alloBookData = { name: ctx.imya || j.name || '', phone: ctx.phone ? '+' + String(ctx.phone).replace(/\D/g, '') : '', site: ctx.sait || '' };
       if (j.name) title.textContent = j.name + ', поговорите с агентом Аллоалло';
       if (j.again) lead.textContent = AGAIN.lead;
       loadWidget(j.widget, j.context || {});
