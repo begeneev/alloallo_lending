@@ -30,11 +30,13 @@ const utm = (() => {
 })();
 
 const phoneMessage = 'Введите номер телефона, например +7 900 123-45-67.';
+// Поле телефона: код страны, маска и проверка номера по стране (phone.js).
+const phoneField = window.AlloPhone ? AlloPhone.attach($('#contact-form [name=phone]')) : null;
 function validateContactField(input) {
   input.setCustomValidity('');
   if (input.name === 'phone') {
-    const digits = input.value.replace(/\D/g, '');
-    if (digits.length < 10 || digits.length > 15 || !/^\+?[0-9 ()–-]+$/.test(input.value.trim())) input.setCustomValidity(phoneMessage);
+    const r = phoneField ? phoneField.validate() : { ok: input.value.replace(/\D/g, '').length >= 10, message: phoneMessage };
+    if (!r.ok) input.setCustomValidity(r.message);
   } else if (input.name === 'name' && !input.value.trim()) input.setCustomValidity('Введите имя.');
   else if (input.name === 'consent' && !input.checked) input.setCustomValidity('Подтвердите согласие, чтобы отправить заявку.');
 }
@@ -60,11 +62,12 @@ $('#contact-form').addEventListener('submit', async e => {
   e.preventDefault();
   const form = e.target, button = form.querySelector('[type=submit]');
   $$('#contact-form input').forEach(validateContactField);
+  if (phoneField) phoneField.check(); // подсветить поле, если номер неверный
   if (!form.reportValidity() || button.disabled) return;
   showFormError('');
   const f = new FormData(form);
   const payload = {
-    name: f.get('name'), phone: f.get('phone'), site: f.get('site'), consent: f.get('consent') === 'on',
+    name: f.get('name'), phone: phoneField ? phoneField.validate().value : f.get('phone'), site: f.get('site'), consent: f.get('consent') === 'on',
     task: f.get('task'), industry: f.get('industry'), company_extra: f.get('company_extra'),
     page: location.origin + location.pathname, utm
   };

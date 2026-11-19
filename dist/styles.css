@@ -179,6 +179,8 @@ form label.consent input{width:18px;height:18px;margin:1px 0 0;padding:0;flex:no
   #contact-form{gap:10px;margin-top:16px}
 }
 @media(max-width:340px){#contact-form .form-row{grid-template-columns:minmax(0,1fr)}}
+/* С кодом страны полю телефона нужно место: на узких экранах имя и телефон друг под другом. */
+@media(max-width:520px){#contact-form .form-row{grid-template-columns:minmax(0,1fr)}}
 #contact-form .form-row{align-items:stretch}
 #contact-form select{color:var(--ink)}
 @media(max-width:480px){#contact-form .form-row-selects{grid-template-columns:minmax(0,1fr)}}
