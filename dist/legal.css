@@ -1,0 +1,39 @@
+/* Страницы документов: /privacy/ (согласие на обработку ПД) и /policy/ (политика обработки ПД).
+   Базовые токены, шрифт и знак — из /styles.css лендинга. */
+.lg-body{background:#fff}
+.lg-top{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:880px;margin:0 auto;
+  padding:calc(22px + env(safe-area-inset-top,0px)) max(24px,env(safe-area-inset-right,0px)) 22px max(24px,env(safe-area-inset-left,0px));border-bottom:1px solid #f0f0f3}
+.lg-top .brand{font-size:24px}
+.lg-back{font-size:14px;color:#545461;transition:color .2s}
+.lg-back:hover{color:var(--purple)}
+.lg-doc{max-width:880px;margin:0 auto;padding:44px max(24px,env(safe-area-inset-right,0px)) 72px max(24px,env(safe-area-inset-left,0px));
+  font-size:16px;line-height:1.7;color:#33343f}
+.lg-doc h1{font-size:clamp(1.7rem,3.6vw,2.4rem);line-height:1.15;letter-spacing:-.04em;font-weight:600;color:var(--ink);text-wrap:balance;margin:0 0 28px}
+.lg-doc h2{font-size:20px;line-height:1.3;letter-spacing:-.02em;font-weight:600;color:var(--ink);margin:40px 0 14px}
+.lg-doc h3{font-size:17px;font-weight:600;color:var(--ink);margin:0 0 8px}
+.lg-doc p{margin:0 0 14px;max-width:72ch}
+.lg-doc ul{margin:0 0 14px;padding-left:22px;max-width:72ch}
+.lg-doc li{margin:4px 0}
+.lg-doc dfn{font-style:normal;font-weight:600;color:var(--ink)}
+.lg-doc a{color:var(--purple);text-decoration:underline;text-underline-offset:3px}
+.lg-goal{border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin:0 0 16px}
+.lg-goal>p{color:var(--ink)}
+.lg-goal dl{margin:16px 0 0;display:grid;grid-template-columns:minmax(0,240px) minmax(0,1fr);gap:12px 24px;font-size:15px}
+.lg-goal dt{color:var(--muted);font-size:14px;line-height:1.55}
+.lg-goal dd{margin:0}
+.lg-goal dd ul{margin:0;padding-left:18px}
+.lg-goal dd p{margin:0}
+.lg-req{margin-top:36px;padding:22px 24px;border-radius:16px;background:var(--soft)}
+.lg-req p{margin:0 0 4px}
+.lg-req h2{margin-top:0}
+.lg-foot{max-width:880px;margin:0 auto;padding:24px max(24px,env(safe-area-inset-right,0px)) calc(32px + env(safe-area-inset-bottom,0px)) max(24px,env(safe-area-inset-left,0px));
+  border-top:1px solid #f0f0f3;display:flex;flex-wrap:wrap;gap:10px 24px;font-size:13px;color:var(--muted)}
+.lg-foot a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.lg-foot a:hover{color:var(--purple)}
+@media (max-width:640px){
+  .lg-top .brand{font-size:21px}
+  .lg-doc{padding-top:30px;font-size:15px}
+  .lg-goal{padding:18px 16px}
+  .lg-goal dl{grid-template-columns:minmax(0,1fr);gap:4px}
+  .lg-goal dd{margin-bottom:10px}
+}
