@@ -72,7 +72,7 @@
 .voice-demo-language{font-size:12px;color:#9684ae;margin:22px 0 14px}
 .minute-price{display:flex;align-items:baseline;gap:13px;color:var(--lime);margin:29px 0 20px}.minute-price strong{font-size:100px;line-height:1;font-weight:550;letter-spacing:-.08em;white-space:nowrap}.minute-price>span{font-size:24px;font-weight:400}.pricing-copy .price-clarification{font-size:12px;line-height:1.7;color:#b8afc4;margin-top:14px;max-width:380px}.pricing-copy .currency-explanation{margin-top:24px}
 .compliance-card{display:flex;gap:15px;align-items:flex-start;border:1px solid #e3ecd7;background:#f4f8ee;border-radius:14px;padding:19px;margin:25px 0}.compliance-icon{width:28px;flex-shrink:0;color:#729050}.compliance-icon svg{width:100%;height:30px}.compliance-card strong{font-size:16px;font-weight:550;color:#415535}.compliance-card p{font-size:13px;line-height:1.7;color:#78856c;margin-top:8px}
-.input-hint{display:block;font-size:11px;color:var(--muted);line-height:1.6;margin-top:6px}#success-view h2{font-size:30px;line-height:1.2}#contact-form input{width:100%}
+.input-hint{display:block;font-size:11px;color:var(--muted);line-height:1.6;margin-top:6px}#success-view h2{font-size:30px;line-height:1.2}:is(#contact-form,#book-form) input{width:100%}
 @media(max-width:1100px){.nav .nav-cta{margin-left:auto}.nav .menu-toggle{margin-left:0}.conversation-section{gap:35px}.conversation-demo{padding:23px}}
 @media(max-width:760px){.nav .menu-toggle{margin-left:auto}.conversation-section{grid-template-columns:minmax(0,1fr);gap:32px}.conversation-copy h2{font-size:34px}.conversation-intro{font-size:15px;margin-top:20px}.conversation-points{gap:24px}.conversation-points p{font-size:14px}.conversation-demo{padding:22px 18px;border-radius:19px}.conversation-demo-heading{gap:9px}.conversation-demo-heading strong{font-size:12px}.conversation-bubble{padding:17px 18px}.conversation-bubble p{font-size:14px}.conversation-context{font-size:11px;min-height:74px}.listening-status{gap:12px;padding:15px}.minute-price strong{font-size:82px}.minute-price>span{font-size:22px}.compliance-card{padding:17px 15px}.hero-benefits{gap:12px 15px}.hero-price strong{font-size:22px}.hero-copy .hero-description{font-size:16px}.conversation-tabs button{font-size:12px}}
 
@@ -159,37 +159,37 @@ form label.consent input{width:18px;height:18px;margin:1px 0 0;padding:0;flex:no
 .orbit-two{animation-delay:-4.5s}
 @media(prefers-reduced-motion:reduce){.waveform.playing i,.waveform.listening i,.orbit{animation:none}}
 /* Compact request form: fits one screen. */
-#contact-dialog{width:min(560px,calc(100% - 24px));padding:30px 32px 26px;max-height:90vh;max-height:calc(100dvh - 24px)}
-#contact-dialog h2{font-size:28px;line-height:1.15;margin:0 34px 8px 0}
-#form-view .muted{font-size:14px;margin:0}
-#contact-form{gap:12px;margin-top:20px}
-#contact-form label{gap:6px;font-size:12px;color:#55546a}
-#contact-form input:not([type=checkbox]),#contact-form select{padding:10px 12px;font-size:14px;min-height:42px}
-#contact-form .form-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end}
-#contact-form .label-line{display:flex;gap:6px;align-items:baseline}
-#contact-form .optional{margin-left:0;font-size:11px}
-#contact-form .consent{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;align-items:start;font-size:12px;line-height:1.5;color:var(--muted);margin-top:2px;cursor:pointer}
-#contact-form .consent input{width:18px;height:18px;min-height:0;margin:0;padding:0;border-radius:4px;accent-color:var(--purple);cursor:pointer}
-#contact-form .button{width:100%;margin-top:2px}
-#contact-form .form-note{margin:0;text-align:center}
+:is(#contact-dialog,#book-dialog){width:min(560px,calc(100% - 24px));padding:30px 32px 26px;max-height:90vh;max-height:calc(100dvh - 24px)}
+:is(#contact-dialog,#book-dialog) h2{font-size:28px;line-height:1.15;margin:0 34px 8px 0}
+:is(#form-view,#book-view,#book-done) .muted{font-size:14px;margin:0}
+:is(#contact-form,#book-form){gap:12px;margin-top:20px}
+:is(#contact-form,#book-form) label{gap:6px;font-size:12px;color:#55546a}
+:is(#contact-form,#book-form) input:not([type=checkbox]),:is(#contact-form,#book-form) select{padding:10px 12px;font-size:14px;min-height:42px}
+:is(#contact-form,#book-form) .form-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end}
+:is(#contact-form,#book-form) .label-line{display:flex;gap:6px;align-items:baseline}
+:is(#contact-form,#book-form) .optional{margin-left:0;font-size:11px}
+:is(#contact-form,#book-form) .consent{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;align-items:start;font-size:12px;line-height:1.5;color:var(--muted);margin-top:2px;cursor:pointer}
+:is(#contact-form,#book-form) .consent input{width:18px;height:18px;min-height:0;margin:0;padding:0;border-radius:4px;accent-color:var(--purple);cursor:pointer}
+:is(#contact-form,#book-form) .button{width:100%;margin-top:2px}
+:is(#contact-form,#book-form) .form-note{margin:0;text-align:center}
 @media(max-width:760px){
-  #contact-dialog{width:calc(100% - 16px);padding:24px 18px 20px;max-height:calc(100dvh - 16px)}
-  #contact-dialog h2{font-size:23px}
-  #form-view .muted{font-size:13px}
-  #contact-form{gap:10px;margin-top:16px}
+  :is(#contact-dialog,#book-dialog){width:calc(100% - 16px);padding:24px 18px 20px;max-height:calc(100dvh - 16px)}
+  :is(#contact-dialog,#book-dialog) h2{font-size:23px}
+  :is(#form-view,#book-view,#book-done) .muted{font-size:13px}
+  :is(#contact-form,#book-form){gap:10px;margin-top:16px}
 }
-@media(max-width:340px){#contact-form .form-row{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:340px){:is(#contact-form,#book-form) .form-row{grid-template-columns:minmax(0,1fr)}}
 /* Документы: ссылки в подвале и в подписи согласия в форме. */
 .footer-legal{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:12px}
 .footer-legal a{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
 .footer-legal a:hover{color:var(--purple)}
-#contact-form .consent a{color:var(--purple);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
-#contact-form .consent a:hover{color:var(--purple-dark);text-decoration-thickness:2px}
+:is(#contact-form,#book-form) .consent a{color:var(--purple);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+:is(#contact-form,#book-form) .consent a:hover{color:var(--purple-dark);text-decoration-thickness:2px}
 /* С кодом страны полю телефона нужно место: на узких экранах имя и телефон друг под другом. */
-@media(max-width:520px){#contact-form .form-row{grid-template-columns:minmax(0,1fr)}}
-#contact-form .form-row{align-items:stretch}
-#contact-form select{color:var(--ink)}
-@media(max-width:480px){#contact-form .form-row-selects{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:520px){:is(#contact-form,#book-form) .form-row{grid-template-columns:minmax(0,1fr)}}
+:is(#contact-form,#book-form) .form-row{align-items:stretch}
+:is(#contact-form,#book-form) select{color:var(--ink)}
+@media(max-width:480px){:is(#contact-form,#book-form) .form-row-selects{grid-template-columns:minmax(0,1fr)}}
 .final-cta .cta-quote{margin:20px 0 26px;max-width:540px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);border-radius:16px 16px 16px 4px;padding:14px 18px;font-size:14px;line-height:1.65;color:#fff}
 @media(max-width:760px){.final-cta .cta-quote{font-size:13px;margin:16px 0 20px}}
 /* Motion, round 2: headline lines, voice ring, marquee, button shine, data flow. */
@@ -217,9 +217,32 @@ form label.consent input{width:18px;height:18px;margin:1px 0 0;padding:0;flex:no
 @media(prefers-reduced-motion:reduce){.marquee-track{width:auto;flex-wrap:wrap}.marquee-group[aria-hidden]{display:none}.strip-items.marquee{-webkit-mask-image:none;mask-image:none}}
 /* The site is one light design: keep native controls and the dialog light even when the host or the system prefers dark. */
 :root,:root[data-theme]{color-scheme:light!important}
-#contact-dialog{background:#fff;color:var(--ink)}
+:is(#contact-dialog,#book-dialog){background:#fff;color:var(--ink)}
 
 /* Live form: bot trap and server error message */
-#contact-form .hp-field{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
-#contact-form .form-error{margin:0;padding:10px 12px;border-radius:8px;background:#fdecec;color:#a61b1b;font-size:13px;line-height:1.5}
-#contact-form .button:disabled{opacity:.75;transform:none}
+:is(#contact-form,#book-form) .hp-field{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+:is(#contact-form,#book-form) .form-error{margin:0;padding:10px 12px;border-radius:8px;background:#fdecec;color:#a61b1b;font-size:13px;line-height:1.5}
+:is(#contact-form,#book-form) .button:disabled{opacity:.75;transform:none}
+/* Запись на демонстрацию: день и время — кнопки-«чипы» (радио), закрытые интервалы сегодняшнего дня бледные. */
+#book-dialog .book-pick{border:0;margin:0;padding:0;min-width:0}
+#book-dialog .book-pick legend{padding:0;margin:0 0 8px;font-size:12px;font-weight:550;color:#55546a}
+#book-dialog .book-pick legend span{font-weight:400;color:var(--muted)}
+#book-dialog .book-chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#book-dialog .book-slots{grid-template-columns:repeat(4,minmax(0,1fr))}
+#book-dialog .book-chips label{position:relative;display:block;cursor:pointer}
+#book-form .book-chips input[type=radio]{position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;padding:0;opacity:0;cursor:pointer}
+#book-dialog .book-chips span{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:42px;padding:6px 4px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:13px;line-height:1.25;text-align:center;color:var(--ink);transition:border-color .15s,background .15s,color .15s}
+#book-dialog .book-chips span small{font-size:11px;color:var(--muted)}
+#book-dialog .book-chips label:hover span{border-color:#b9a6f3}
+#book-dialog .book-chips input:checked+span{border-color:var(--purple);background:var(--purple);color:#fff}
+#book-dialog .book-chips input:checked+span small{color:#e4defd}
+#book-dialog .book-chips input:focus-visible+span{outline:3px solid #9d88ff;outline-offset:2px}
+#book-dialog .book-chips input:disabled+span{opacity:.4;cursor:not-allowed;background:var(--soft)}
+#book-dialog .book-chips label:has(input:disabled){cursor:not-allowed}
+#book-done h2{font-size:28px;line-height:1.15;margin:0 34px 8px 0}
+#book-done .muted{font-size:15px;line-height:1.6;margin:0}
+#book-done .muted strong{color:var(--ink);font-weight:600}
+.book-done-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.book-done-actions .button{flex:1 1 200px}
+#book-dialog{background:#fff;color:var(--ink)}
+@media(max-width:520px){#book-dialog .book-slots{grid-template-columns:repeat(2,minmax(0,1fr))}}

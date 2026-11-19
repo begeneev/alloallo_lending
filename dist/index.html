@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;450;500;550;600;650;700;750;800;900&amp;display=swap" rel="stylesheet">
 <link rel="canonical" href="https://xn--80aa6aabasd.xn--p1ai/">
 <meta property="og:url" content="https://xn--80aa6aabasd.xn--p1ai/">
-<link rel="stylesheet" href="/styles.css?v=1f711822f5"><script src="/phone.js?v=87fee35959" defer></script><script src="/app.js?v=46731563ac" defer></script>
+<link rel="stylesheet" href="/styles.css?v=257172d2b1"><script src="/phone.js?v=87fee35959" defer></script><script src="/app.js?v=37d7231ef6" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Перейти к содержимому</a>
@@ -26,7 +26,7 @@
   <div class="hero-copy">
     <h1><span class="ln">Ни одного</span> <span class="ln"><span class="accent">«алло»</span></span> <span class="ln">в пустоту.</span></h1>
     <p class="hero-description">Аллоалло говорит как живой человек: естественным голосом, своими словами, с живой интонацией. Берёт трубку, когда вашей команде некогда, — в час пик, вечером и в выходные. Записывает клиента или принимает заказ и сохраняет итог в CRM.</p>
-    <div class="hero-actions"><button class="button purple" data-contact data-task="Разговор с агентом и демонстрация">Пообщаться с агентом</button><a class="button text-button" href="#calculator">Посчитать пропущенные звонки</a></div>
+    <div class="hero-actions"><button class="button purple" data-contact data-task="Разговор с агентом и демонстрация">Пообщаться с агентом</button><button class="button text-button" type="button" data-book>Записаться на демонстрацию</button></div>
     <p class="hero-note">Оставьте контакты и позвоните агенту Аллоалло прямо из браузера: он расскажет о сервисе и запишет на демонстрацию. Перебивайте, уточняйте, передумывайте: это и есть пример разговора.</p>
     <div class="hero-benefits"><span class="hero-price">от <strong>3 ₽</strong> / мин</span><span><b>✓</b> Естественный голос</span><span><b>✓</b> Весь разговор — в России</span><span><b>✓</b> Ваш номер и АТС остаются</span></div>
   </div>
@@ -236,5 +236,30 @@
       <button class="button purple" type="submit">Поговорить с агентом</button>
       <p class="form-note">После отправки откроется страница звонка. Нужен только микрофон.</p>
     </form></div>
+</dialog>
+<dialog id="book-dialog" aria-labelledby="book-title"><button class="dialog-close" aria-label="Закрыть">×</button>
+  <div id="book-view"><h2 id="book-title">Запись на демонстрацию</h2><p class="muted">Покажем демо-агента вашей компании, подготовленного по вашему сайту: услуги, цены, адреса. Разберём, какие звонки передать ему первыми.</p>
+    <form id="book-form">
+      <input type="hidden" name="task" value="Запись на демонстрацию">
+      <div class="hp-field" aria-hidden="true"><input name="company_extra" tabindex="-1" autocomplete="off"></div>
+      <div class="form-row">
+        <input name="name" autocomplete="name" placeholder="Ваше имя" aria-label="Имя" required maxlength="100">
+        <input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Телефон" aria-label="Телефон" required maxlength="28">
+      </div>
+      <input name="site" autocomplete="url" inputmode="url" placeholder="Сайт компании" aria-label="Сайт компании" maxlength="200">
+      <fieldset class="book-pick"><legend>Удобный день</legend><div class="book-chips" id="book-days"></div></fieldset>
+      <fieldset class="book-pick"><legend>Время <span>по Москве</span></legend><div class="book-chips book-slots" id="book-slots">
+        <label><input type="radio" name="slot" value="10-12" data-from="10"><span>10:00–12:00</span></label>
+        <label><input type="radio" name="slot" value="12-14" data-from="12"><span>12:00–14:00</span></label>
+        <label><input type="radio" name="slot" value="14-16" data-from="14"><span>14:00–16:00</span></label>
+        <label><input type="radio" name="slot" value="16-18" data-from="16"><span>16:00–18:00</span></label>
+      </div></fieldset>
+      <label class="consent"><input type="checkbox" name="consent" required><span>Согласен на <a href="/privacy/" target="_blank" rel="noopener">обработку персональных данных</a> для заявки и демонстрации в соответствии с <a href="/policy/" target="_blank" rel="noopener">политикой обработки персональных данных</a></span></label>
+      <p class="form-error" id="book-error" role="alert" hidden></p>
+      <button class="button purple" type="submit">Записаться</button>
+      <p class="form-note">Менеджер позвонит, чтобы подтвердить день и время.</p>
+    </form></div>
+  <div id="book-done" hidden><h2>Вы записаны</h2><p class="muted" id="book-done-text"></p>
+    <div class="book-done-actions"><button class="button purple" type="button" id="book-to-agent">Пока поговорить с агентом</button><button class="button text-button" type="button" id="book-close">Закрыть</button></div></div>
 </dialog>
 </body></html>
