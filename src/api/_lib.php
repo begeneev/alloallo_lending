@@ -39,6 +39,7 @@ function allo_config() {
     'bitrix_stage_new' => '',
     'bitrix_stage_started' => '',
     'bitrix_stage_called' => '',
+    'bitrix_stage_booked' => 'Назначена консультация',
     'bitrix_category_id' => 0,
     'bitrix_funnel' => '',
     'bitrix_source_id' => 'WEB',
@@ -169,7 +170,7 @@ function allo_phone_key($phone) { return hash('sha256', 'alloallo|' . $phone); }
 
 // Удаляет просроченные записи (заявки старше двух суток). Вызывается изредка из lead.php.
 function allo_cleanup() {
-  foreach (['codes', 'phones', 'demo', 'rate', 'cache'] as $sub) {
+  foreach (['codes', 'phones', 'demo', 'book', 'rate', 'cache'] as $sub) {
     $dir = allo_dir($sub);
     if (!$dir) continue;
     foreach (array_merge(glob($dir . '/*.json') ?: [], glob($dir . '/*.lock') ?: []) as $f) {
@@ -256,7 +257,10 @@ function allo_bx($method, $params) {
 // Стадию сделки сервер двигает только вперёд по порядку воронки: робот или менеджер могли уже перевести
 // её дальше (агент записал на консультацию), а итоговые стадии (успех, провал) не трогаются вовсе.
 
-const ALLO_STAGE_KEYS = ['new' => 'bitrix_stage_new', 'started' => 'bitrix_stage_started', 'called' => 'bitrix_stage_called'];
+const ALLO_STAGE_KEYS = ['new' => 'bitrix_stage_new', 'started' => 'bitrix_stage_started', 'called' => 'bitrix_stage_called', 'booked' => 'bitrix_stage_booked'];
+// Воронку выбирают по этим стадиям; стадию записи на демонстрацию (booked) потом ищут в найденной воронке.
+// Нет её там — запись на демонстрацию заводится на стадии new, а остальные заявки работают как раньше.
+const ALLO_STAGE_FUNNEL_KEYS = ['new', 'started', 'called'];
 
 function allo_norm($s) {
   $s = trim(preg_replace('/\s+/u', ' ', (string)$s));
@@ -310,7 +314,7 @@ function allo_find_stage($want, $stages) {
   return count($hits) === 1 ? $hits[0] : null;
 }
 
-// ['new' => код, 'started' => код, 'called' => код, 'category' => воронка, 'order' => [код => [сортировка, название, итоговая]]].
+// ['new' => код, 'started' => код, 'called' => код, 'booked' => код, 'category' => воронка, 'order' => [код => [сортировка, название, итоговая]]].
 // Ошибка — исключение с понятным текстом: он попадёт в журнал и в письмо «Внесите вручную».
 function allo_stages() {
   static $res = null;
@@ -318,7 +322,8 @@ function allo_stages() {
   $cfg = allo_config();
   $want = [];
   foreach (ALLO_STAGE_KEYS as $k => $opt) $want[$k] = trim((string)$cfg[$opt]);
-  $set = array_filter($want, 'strlen');
+  $set = array_filter(array_intersect_key($want, array_flip(ALLO_STAGE_FUNNEL_KEYS)), 'strlen');
+  if (!$set) $set = array_filter($want, 'strlen');
   if (!$set) return $res = $want + ['category' => (int)$cfg['bitrix_category_id'], 'order' => []];
 
   $key = 'stages2-' . substr(hash('sha256', $cfg['bitrix_webhook'] . '|' . json_encode([$want, $cfg['bitrix_funnel']], JSON_UNESCAPED_UNICODE)), 0, 24);
@@ -354,13 +359,17 @@ function allo_stages() {
   $id = array_keys($found)[0];
   $order = [];
   foreach ($funnels[$id]['stages'] as $st) $order[$st[0]] = [$st[2], $st[1], $st[3]];
-  $res = $found[$id] + ['new' => '', 'started' => '', 'called' => '', 'category' => $id, 'order' => $order];
+  $res = $found[$id] + ['new' => '', 'started' => '', 'called' => '', 'booked' => '', 'category' => $id, 'order' => $order];
+  if ($res['booked'] === '' && $want['booked'] !== '') {
+    $res['booked'] = (string)allo_find_stage($want['booked'], $funnels[$id]['stages']);
+    if ($res['booked'] === '') allo_log('bitrix_stage_missing', ['booked' => $want['booked'], 'category' => $id]);
+  }
   allo_write('cache', $key, ['stages' => $res, 'expires' => time() + 3600]);
-  allo_log('bitrix_stages', ['new' => $res['new'], 'started' => $res['started'], 'called' => $res['called'], 'category' => $id]);
+  allo_log('bitrix_stages', ['new' => $res['new'], 'started' => $res['started'], 'called' => $res['called'], 'booked' => $res['booked'], 'category' => $id]);
   return $res;
 }
 
-// Перевести сделку на стадию $key ('started', 'called') — только вперёд. $current — стадия, если уже известна.
+// Перевести сделку на стадию $key ('started', 'called', 'booked') — только вперёд. $current — стадия, если уже известна.
 // Ответ: [итог, название стадии], итог — moved (перевели), same (уже там), ahead (сделка уже дальше или на
 // итоговой стадии), other (сделку перенесли в другую воронку), off (стадия в настройках не задана).
 function allo_move_deal($deal, $key, $current = null) {
@@ -460,19 +469,23 @@ function allo_call_context($rec) {
   ];
 }
 
-// Сделка по заявке с сайта: «Аллоалло: Имя клиента» (с демо-страницы — «Аллоалло-Демо: Имя»), стадия bitrix_stage_new.
+// Сделка по заявке с сайта: «Аллоалло: Имя клиента», стадия bitrix_stage_new. С демо-страницы —
+// «Аллоалло-Демо: Имя»; запись на демонстрацию — «Аллоалло-Демонстрация: Имя», стадия bitrix_stage_booked.
 function allo_create_deal($rec) {
   $cfg = allo_config();
   $st = allo_stages();
-  $stage = $st['new'];
+  $booking = !empty($rec['booking']);
+  $stage = $booking && $st['booked'] ? $st['booked'] : $st['new'];
+  $prefix = $booking ? 'Аллоалло-Демонстрация: ' : (empty($rec['demo']) ? 'Аллоалло: ' : 'Аллоалло-Демо: ');
   $fields = [
-    'TITLE' => (empty($rec['demo']) ? 'Аллоалло: ' : 'Аллоалло-Демо: ') . ($rec['name'] ?: '+' . $rec['phone']),
+    'TITLE' => $prefix . ($rec['name'] ?: '+' . $rec['phone']),
     'CATEGORY_ID' => $st['category'],
     'CONTACT_ID' => allo_contact($rec['phone'], $rec['name']),
     'SOURCE_ID' => $cfg['bitrix_source_id'],
     'SOURCE_DESCRIPTION' => 'Форма на сайте: ' . $rec['task'],
     'COMMENTS' => allo_lines([
       ['Имя', $rec['name']], ['Телефон', '+' . $rec['phone']], ['Сайт компании', $rec['site']],
+      ['Удобное время демонстрации', $rec['slot_text'] ?? ''],
       ['Кнопка на сайте', $rec['task']], ['Сфера', $rec['industry']], ['Страница', $rec['page']],
       ['Согласие на обработку ПД', 'да, ' . $rec['created_text']],
     ]),
@@ -590,15 +603,18 @@ function allo_lead_mail($rec, $why) {
   $utm = [];
   foreach ($rec['utm'] ?? [] as $k => $v) $utm[] = str_replace('utm_', '', $k) . '=' . $v;
   $who = ($rec['name'] ?: 'Без имени') . ', +' . $rec['phone'];
-  $subject = ($why ? 'Внесите вручную: ' : '') . (empty($rec['demo']) ? 'Заявка с сайта Аллоалло — ' : 'Заявка на демо-звонок Аллоалло — ') . $who;
+  $kind = !empty($rec['booking']) ? 'Запись на демонстрацию Аллоалло — ' : (empty($rec['demo']) ? 'Заявка с сайта Аллоалло — ' : 'Заявка на демо-звонок Аллоалло — ');
+  $subject = ($why ? 'Внесите вручную: ' : '') . $kind . $who;
   $head = $why ? "Заявка НЕ попала в Битрикс24 — внесите её вручную.\nПричина: " . $why
     : 'Копия заявки. В Битрикс24 она уже есть: сделка №' . $rec['deal'] . '.';
   $text = $head . "\n\n" . allo_lines([
     ['Имя', $rec['name']], ['Телефон', '+' . $rec['phone']], ['Сайт компании', $rec['site']],
+    ['Удобное время демонстрации', $rec['slot_text'] ?? ''],
     ['Кнопка на сайте', $rec['task']], ['Сфера', $rec['industry']], ['Страница', $rec['page']], ['UTM', implode(', ', $utm)],
     ['Согласие на обработку ПД', 'да, ' . $rec['created_text']],
-  ]) . (empty($rec['demo']) ? "\n\nЧеловек перешёл на страницу звонка агенту." : "\n\nЧеловеку открыт звонок демо-агенту на странице /demo/.")
-    . ($why ? ' Если он поговорит с агентом, итог придёт следующим письмом.' : '');
+  ]) . (!empty($rec['booking']) ? "\n\nЧеловек записался на демонстрацию: позвоните, чтобы подтвердить время."
+    : (empty($rec['demo']) ? "\n\nЧеловек перешёл на страницу звонка агенту." : "\n\nЧеловеку открыт звонок демо-агенту на странице /demo/.")
+      . ($why ? ' Если он поговорит с агентом, итог придёт следующим письмом.' : ''));
   return allo_mail($subject, $text);
 }
 
