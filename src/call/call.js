@@ -40,7 +40,7 @@
   };
   const ENDS = ['ended', 'expired', 'used', 'not_configured'];
 
-  const code = (location.hash.slice(1).match(/^[a-f0-9]{32}$/) || [])[0] || '';
+  let code = (location.hash.slice(1).match(/^[a-f0-9]{32}$/) || [])[0] || '';
   let W = null, state = 'loading', speaker = 'none', prevCs = 'idle', lastError = null, repeat = false;
   let startedAt = 0, duration = 0, actx = null, meters = null, lvl = 0, tick = 0, connectTimer = 0, loadTimer = 0, inCall = false;
 
@@ -196,6 +196,17 @@
   }
 
   async function init() {
+    // Ссылка из WhatsApp: /call/?phone=<номер>. Код заявки берём по номеру и ставим в адрес вместо номера.
+    const phone = new URLSearchParams(location.search).get('phone');
+    if (!code && phone) {
+      try {
+        const j = await (await post('/api/open.php', { phone })).json().catch(() => ({}));
+        if (j.ok && /^[a-f0-9]{32}$/.test(j.code || '')) {
+          history.replaceState(null, '', '/call/#' + j.code);
+          code = j.code;
+        }
+      } catch (e) {}
+    }
     if (!code) { setState('expired'); return; }
     try {
       const r = await post('/api/call.php', { code });
