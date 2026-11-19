@@ -65,3 +65,7 @@
 @media (prefers-reduced-motion: reduce){.cp-body *,.cp-body *::before,.cp-body *::after{animation:none!important;transition:none!important}}
 /* кнопку и окно виджета платформы не показываем: звоним своей кнопкой */
 #alloallo-widget-button{display:none!important}
+/* Запись на демонстрацию: для тех, кому удобнее созвон с менеджером, чем разговор с агентом. */
+.cp-book{margin:18px auto 0;max-width:46ch;font-size:14px;line-height:1.6;color:var(--muted);text-align:center}
+.cp-book-btn{display:inline;padding:0;border:0;background:none;font:inherit;font-weight:600;color:var(--purple);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;cursor:pointer}
+.cp-book-btn:hover{color:var(--purple-dark);text-decoration-thickness:2px}

@@ -74,6 +74,7 @@ try {
         $stage = allo_move_deal($deal, 'booked')[0];
         allo_deal_comment($deal, allo_lines([
           ['Запись на демонстрацию', $slotText], ['Имя', $name], ['Телефон', '+' . $phone], ['Сайт компании', $site],
+          ['Кнопка на сайте', $rec['task']], ['Страница', $rec['page']],
           ['Согласие на обработку ПД', 'да, ' . $rec['created_text']],
         ]));
         $updated = true;
