@@ -50,8 +50,9 @@ try {
         return null;
       }
     }
-    $code = bin2hex(random_bytes(16));
+    $code = allo_new_code();
     $rec = allo_lead_record($phone, $name, $site, $in, $utm, allo_str($in['task'] ?? '', 100) ?: 'Разговор с агентом и демонстрация');
+    $rec['link_code'] = $code; // этот же код — в ссылке из сообщения WhatsApp (поле сделки «Ссылка на звонок»)
     // Сделка сразу после формы, копия — на почту. Битрикс не настроен или не ответил — письмо «внесите вручную»,
     // а сделку сервер попробует создать ещё раз после разговора (call-event.php).
     if (!allo_deliver_lead($rec)) { $result = ['ok' => false, 'error' => 'not_delivered']; return null; }

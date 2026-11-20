@@ -11,6 +11,11 @@ $in = allo_body();
 $code = $in['code'] ?? '';
 if (!allo_valid_code($code)) allo_json(['ok' => false, 'error' => 'expired'], 404);
 $rec = allo_read('codes', $code);
+// Ссылка из сообщения WhatsApp старше суток: запись заявки удалена, но код подписан — восстанавливаем по сделке.
+if (!$rec) {
+  try { $rec = allo_restore_code($code); }
+  catch (Throwable $e) { allo_log('code_restore_failed', ['error' => allo_safe_error($e->getMessage())]); }
+}
 if (!$rec) allo_json(['ok' => false, 'error' => 'expired'], 404);
 // С номера уже поговорили: страница скажет «вы уже оставляли заявку и поговорили с агентом».
 if ($cfg['one_call_per_day'] && !empty($rec['calls'])) allo_json(['ok' => false, 'error' => 'used', 'name' => $rec['name']], 409);

@@ -40,6 +40,9 @@ function allo_config() {
     'bitrix_stage_started' => '',
     'bitrix_stage_called' => '',
     'bitrix_stage_booked' => 'Назначена консультация',
+    'bitrix_link_field' => 'Ссылка на звонок',
+    'site_url' => '',
+    'link_secret' => '',
     'bitrix_category_id' => 0,
     'bitrix_funnel' => '',
     'bitrix_source_id' => 'WEB',
@@ -124,6 +127,56 @@ function allo_only_post() {
 // --- Хранилище: по файлу на код и на номер, с блокировкой. ---
 
 function allo_valid_code($code) { return is_string($code) && preg_match('/^[a-f0-9]{32}$/', $code); }
+
+// --- Подписанные коды. Код заявки — 16 случайных символов и 16 символов подписи (HMAC с секретом сервера).
+// Подделать или подобрать такой код нельзя, поэтому по ссылке /call/#<код> из сообщения в WhatsApp можно
+// открыть звонок и через сутки, когда сама запись заявки на сервере уже удалена: сервер проверит подпись и
+// восстановит заявку по сделке в Битрикс24 (allo_restore_code). Секрет — link_secret из настроек, а если его
+// нет — файл link-secret в папке данных, который сервер создаёт сам. Сменили секрет — старые ссылки не откроются.
+
+function allo_link_secret() {
+  static $secret = null;
+  if ($secret !== null) return $secret;
+  $cfg = allo_config();
+  if (!empty($cfg['link_secret'])) return $secret = (string)$cfg['link_secret'];
+  $dir = rtrim($cfg['data_dir'], '/');
+  if (!is_dir($dir)) @mkdir($dir, 0700, true);
+  $f = $dir . '/link-secret';
+  $s = is_file($f) ? trim((string)@file_get_contents($f)) : '';
+  if (strlen($s) < 32) {
+    $s = bin2hex(random_bytes(32));
+    $tmp = $f . '.' . bin2hex(random_bytes(4));
+    // Два запроса разом: файл создаёт первый, второй берёт уже записанный секрет.
+    if (@file_put_contents($tmp, $s) === false) throw new RuntimeException('storage');
+    @chmod($tmp, 0600);
+    if (!@link($tmp, $f)) { $s = trim((string)@file_get_contents($f)); }
+    @unlink($tmp);
+    if (strlen($s) < 32) throw new RuntimeException('storage');
+  }
+  return $secret = $s;
+}
+
+function allo_code_sig($nonce) { return substr(hash_hmac('sha256', 'call|' . $nonce, allo_link_secret()), 0, 16); }
+
+function allo_new_code() {
+  $nonce = bin2hex(random_bytes(8));
+  return $nonce . allo_code_sig($nonce);
+}
+
+function allo_signed_code($code) {
+  return allo_valid_code($code) && hash_equals(allo_code_sig(substr($code, 0, 16)), substr($code, 16));
+}
+
+// Ссылка на страницу звонка для сделки (её вставляет в сообщение WhatsApp робот Битрикса из поля сделки).
+function allo_call_link($code) {
+  $base = rtrim((string)allo_config()['site_url'], '/');
+  if ($base === '') {
+    $host = preg_replace('/[^a-z0-9.:\-]/i', '', (string)($_SERVER['HTTP_HOST'] ?? ''));
+    $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    $base = ($https || strpos($host, 'localhost') === false ? 'https://' : 'http://') . $host;
+  }
+  return $base . '/call/#' . $code;
+}
 
 function allo_read($sub, $key) {
   $dir = allo_dir($sub);
@@ -441,6 +494,7 @@ function allo_lead_record($phone, $name, $site, $in, $utm, $task) {
 // Новая заявка — в Битрикс24 (сделка) и копией на почту (mail_mode = always) или только при сбое Битрикса.
 // Не дошла ни туда, ни туда — false: звонок не открываем, форма покажет ошибку, заявка не теряется молча.
 function allo_deliver_lead(&$rec) {
+  if (empty($rec['link_code'])) $rec['link_code'] = allo_new_code();
   if (allo_bitrix_on()) {
     try { $rec['deal'] = allo_create_deal($rec); }
     catch (Throwable $e) { $rec['bitrix_error'] = allo_safe_error($e->getMessage()); allo_log('lead_bitrix_failed', ['error' => $rec['bitrix_error']]); }
@@ -492,12 +546,77 @@ function allo_create_deal($rec) {
   ];
   if ($stage) $fields['STAGE_ID'] = $stage;
   if ($cfg['bitrix_assigned_by_id']) $fields['ASSIGNED_BY_ID'] = (int)$cfg['bitrix_assigned_by_id'];
+  // Ссылка на звонок — сразу в сделке: робот на первой стадии вставит её в сообщение WhatsApp.
+  if (!empty($rec['link_code'])) {
+    try { $lf = allo_link_field(); if ($lf !== '') $fields[$lf] = allo_call_link($rec['link_code']); }
+    catch (Throwable $e) { allo_log('bitrix_link_field_failed', ['error' => allo_safe_error($e->getMessage())]); }
+  }
   foreach (['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'] as $u) {
     if (!empty($rec['utm'][$u])) $fields[strtoupper($u)] = $rec['utm'][$u];
   }
   $id = (int)allo_bx('crm.deal.add', ['fields' => $fields]);
   if (!$id) throw new RuntimeException('crm.deal.add: no id');
   return $id;
+}
+
+// --- Поле сделки «Ссылка на звонок» (bitrix_link_field): название поля, как в карточке сделки, или его код
+// (UF_CRM_…). Сервер находит код сам (crm.deal.userfield.list) и запоминает на час. Поля нет — сделка
+// создаётся без ссылки, в журнале bitrix_link_field_missing.
+function allo_link_field() {
+  static $res = null;
+  if ($res !== null) return $res;
+  $want = trim((string)allo_config()['bitrix_link_field']);
+  if ($want === '') return $res = '';
+  if (preg_match('/^UF_CRM_[A-Z0-9_]+$/', $want)) return $res = $want;
+  $key = 'linkfield-' . substr(hash('sha256', allo_config()['bitrix_webhook'] . '|' . $want), 0, 24);
+  $cached = allo_read('cache', $key);
+  if ($cached && isset($cached['field'])) return $res = $cached['field'];
+  $found = '';
+  foreach ((array)allo_bx('crm.deal.userfield.list', ['filter' => ['LANG' => 'ru']]) as $f) {
+    foreach (['EDIT_FORM_LABEL', 'LIST_COLUMN_LABEL', 'LIST_FILTER_LABEL'] as $l) {
+      $label = $f[$l] ?? '';
+      if (is_array($label)) $label = $label['ru'] ?? reset($label);
+      if (allo_norm($label) === allo_norm($want)) { $found = (string)$f['FIELD_NAME']; break 2; }
+    }
+  }
+  if ($found === '') allo_log('bitrix_link_field_missing', ['field' => $want]);
+  allo_write('cache', $key, ['field' => $found, 'expires' => time() + 3600]);
+  return $res = $found;
+}
+
+// Заявка по подписанному коду, если её запись на сервере уже удалена (прошли сутки): сделка с этой ссылкой
+// в поле «Ссылка на звонок», имя и телефон — из контакта сделки. Звонок привязывается к той же сделке.
+function allo_restore_code($code) {
+  if (!allo_signed_code($code) || !allo_bitrix_on()) return null;
+  $field = allo_link_field();
+  if ($field === '') return null;
+  $deals = allo_bx('crm.deal.list', ['order' => ['ID' => 'DESC'], 'filter' => ['=' . $field => allo_call_link($code)], 'select' => ['ID', 'CONTACT_ID']]);
+  $deal = null; $contact = 0;
+  foreach ((array)$deals as $d) { $deal = (int)$d['ID']; $contact = (int)$d['CONTACT_ID']; break; }
+  if (!$deal) return null;
+  $name = ''; $phone = '';
+  if ($contact) {
+    $c = allo_bx('crm.contact.get', ['id' => $contact]);
+    $name = trim((string)($c['NAME'] ?? ''));
+    foreach ((array)($c['PHONE'] ?? []) as $p) { $phone = allo_phone((string)($p['VALUE'] ?? '')); if ($phone) break; }
+  }
+  if (!$phone) return null;
+  $rec = allo_lead_record($phone, $name, '', ['page' => 'Ссылка из сообщения'], [], 'Ссылка на звонок из сообщения');
+  $rec['deal'] = $deal;
+  $rec['link_code'] = $code;
+  $rec['restored'] = true;
+  allo_write('codes', $code, $rec);
+  allo_log('code_restored', ['code' => substr($code, 0, 8), 'deal' => $deal]);
+  return $rec;
+}
+
+// Запись для ссылки из сообщения, когда сделку завела заявка с /demo/ или запись на демонстрацию: по ссылке
+// открывается обычный звонок агенту Аллоалло с той же сделкой.
+function allo_write_link_record($rec) {
+  if (empty($rec['link_code']) || empty($rec['deal'])) return;
+  unset($rec['demo'], $rec['booking'], $rec['slot_text']);
+  $rec['calls'] = [];
+  allo_write('codes', $rec['link_code'], $rec);
 }
 
 // --- Почта: копия каждой заявки (mail_mode = always) или только когда Битрикс24 не принял её (fallback). ---

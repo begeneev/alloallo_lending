@@ -49,7 +49,7 @@ try {
       return null;
     }
 
-    $code = bin2hex(random_bytes(16));
+    $code = allo_new_code();
     $rec = allo_lead_record($phone, $name, '', $in, $utm, 'Демо-агент: ' . $title);
     $rec['demo'] = $agent;
     if ($saved['deal']) {
@@ -62,6 +62,8 @@ try {
     } elseif (!allo_deliver_lead($rec)) {
       $result = ['ok' => false, 'error' => 'not_delivered'];
       return null;
+    } else {
+      allo_write_link_record($rec); // ссылка из сообщения WhatsApp откроет звонок агенту Аллоалло с этой сделкой
     }
     allo_write('codes', $code, $rec);
     $saved['agents'][$agent] = $code;
