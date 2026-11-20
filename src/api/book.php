@@ -88,6 +88,7 @@ try {
     }
     if (!$updated) {
       if (!allo_deliver_lead($rec)) { $result = ['ok' => false, 'error' => 'not_delivered']; return null; }
+      allo_write_link_record($rec); // ссылка из сообщения WhatsApp откроет звонок агенту Аллоалло с этой сделкой
       allo_log('book', ['deal' => $rec['deal'], 'slot' => $slotText]);
     }
     $result = ['ok' => true, 'slot_text' => $slotText];

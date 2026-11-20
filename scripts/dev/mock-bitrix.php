@@ -28,7 +28,21 @@ switch ($method) {
     break;
   case 'crm.contact.add': $r = 11; break;
   // Робот портала: на «Новый лид» отправляет сообщение в WhatsApp и переводит сделку на «Отправлено сообщение».
-  case 'crm.deal.add': $r = 501; $s0 = $in['fields']['STAGE_ID'] ?? 'NEW'; file_put_contents($stageFile, $s0 === 'C61:NEW' ? 'C61:PREPARATION' : $s0); break;
+  // Поле «Ссылка на звонок»: ссылки сделок хранятся в /tmp/mock-bitrix-links (ссылка → [сделка, контакт]).
+  case 'crm.deal.userfield.list': $r = [['FIELD_NAME' => 'UF_CRM_1700000000', 'EDIT_FORM_LABEL' => 'Ссылка на звонок', 'USER_TYPE_ID' => 'string']]; break;
+  case 'crm.deal.list':
+    $links = is_file('/tmp/mock-bitrix-links') ? json_decode(file_get_contents('/tmp/mock-bitrix-links'), true) : [];
+    $want = $in['filter']['=UF_CRM_1700000000'] ?? null;
+    $r = isset($links[$want]) ? [['ID' => (string)$links[$want][0], 'CONTACT_ID' => (string)$links[$want][1]]] : [];
+    break;
+  case 'crm.contact.get': $r = ['ID' => (string)($in['id'] ?? 0), 'NAME' => 'Контакт из Битрикса', 'PHONE' => [['VALUE' => '+7 (900) 765-43-21', 'VALUE_TYPE' => 'WORK']]]; break;
+  case 'crm.deal.add':
+    if (!empty($in['fields']['UF_CRM_1700000000'])) {
+      $links = is_file('/tmp/mock-bitrix-links') ? json_decode(file_get_contents('/tmp/mock-bitrix-links'), true) : [];
+      $links[$in['fields']['UF_CRM_1700000000']] = [501, (int)($in['fields']['CONTACT_ID'] ?? 0)];
+      file_put_contents('/tmp/mock-bitrix-links', json_encode($links));
+    }
+    $r = 501; $s0 = $in['fields']['STAGE_ID'] ?? 'NEW'; file_put_contents($stageFile, $s0 === 'C61:NEW' ? 'C61:PREPARATION' : $s0); break;
   case 'crm.deal.update': $r = true; if (isset($in['fields']['STAGE_ID'])) file_put_contents($stageFile, $in['fields']['STAGE_ID']); break;
   case 'crm.deal.get': $r = ['ID' => (string)($in['id'] ?? 0), 'STAGE_ID' => is_file($stageFile) ? file_get_contents($stageFile) : 'C61:NEW']; break;
   case 'crm.timeline.comment.add': $r = 77; break;
