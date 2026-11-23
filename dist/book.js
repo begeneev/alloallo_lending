@@ -75,7 +75,68 @@
   /* Сегодняшний интервал можно выбрать, если до его начала не меньше часа. */
   const slotOpen = (from, isToday, hour) => !isToday || from >= hour + 1;
 
+  /* Свободное время из Google Календаря менеджера (/api/slots.php): starts — начала встреч в UTC.
+     Пока не загрузилось или календарь не ответил — прежние интервалы, время подтверждает менеджер. */
+  let free = null; // { 'YYYY-MM-DD' (по Москве): [{ iso, time: 'HH:00' }] }
+  const MSK_PARTS = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  function groupStarts(starts) {
+    const out = {};
+    starts.forEach(iso => {
+      const p = {};
+      MSK_PARTS.formatToParts(new Date(iso)).forEach(x => { p[x.type] = x.value; });
+      const day = p.year + '-' + p.month + '-' + p.day;
+      (out[day] = out[day] || []).push({ iso, time: p.hour + ':' + p.minute });
+    });
+    return out;
+  }
+  async function loadFree() {
+    try {
+      const r = await fetch('/api/slots.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const j = await r.json().catch(() => ({}));
+      free = j.ok && Array.isArray(j.starts) && j.starts.length ? groupStarts(j.starts) : null;
+    } catch (e) { free = null; }
+    if (dialog.open) renderDays();
+  }
+
+  function renderFreeDays() {
+    const now = moscowNow(), today = Date.UTC(now.y, now.m - 1, now.d), box = $('#book-days', dialog);
+    const keep = box.querySelector('input:checked')?.value;
+    box.textContent = '';
+    Object.keys(free).sort().slice(0, DAYS).forEach(value => {
+      const day = new Date(value + 'T00:00:00Z'), i = Math.round((day - today) / 864e5);
+      const label = document.createElement('label'), input = document.createElement('input'), span = document.createElement('span'), small = document.createElement('small');
+      input.type = 'radio'; input.name = 'date'; input.value = value;
+      small.textContent = i === 0 ? 'сегодня' : i === 1 ? 'завтра' : WEEKDAYS[day.getUTCDay()];
+      span.append(day.getUTCDate() + ' ' + MONTHS[day.getUTCMonth()], small);
+      label.append(input, span);
+      box.append(label);
+      if (value === keep) input.checked = true;
+    });
+    if (!box.querySelector('input:checked') && box.querySelector('input')) box.querySelector('input').checked = true;
+    renderFreeTimes();
+  }
+  function renderFreeTimes() {
+    const day = $('#book-days input:checked', dialog), box = $('#book-slots', dialog);
+    const keep = box.querySelector('input[name=start]:checked')?.value;
+    box.textContent = '';
+    ((day && free[day.value]) || []).forEach(({ iso, time }) => {
+      const label = document.createElement('label'), input = document.createElement('input'), span = document.createElement('span');
+      input.type = 'radio'; input.name = 'start'; input.value = iso;
+      span.textContent = time;
+      label.append(input, span);
+      box.append(label);
+      if (iso === keep) input.checked = true;
+    });
+  }
+  function renderIntervals() {
+    const box = $('#book-slots', dialog);
+    if (box.querySelector('input[name=slot]')) return;
+    box.innerHTML = SLOTS.map(([v, t, from]) => `<label><input type="radio" name="slot" value="${v}" data-from="${from}"><span>${t}</span></label>`).join('');
+  }
+
   function renderDays() {
+    if (free) { renderFreeDays(); return; }
+    renderIntervals();
     const now = moscowNow(), base = Date.UTC(now.y, now.m - 1, now.d), box = $('#book-days', dialog);
     const keep = box.querySelector('input:checked')?.value;
     box.textContent = '';
@@ -96,6 +157,7 @@
     updateSlots();
   }
   function updateSlots() {
+    if (free) { renderFreeTimes(); return; }
     const day = $('#book-days input:checked', dialog), isToday = !!(day && day.dataset.today), h = moscowNow().h;
     $$('#book-slots input', dialog).forEach(s => {
       s.disabled = !slotOpen(+s.dataset.from, isToday, h);
@@ -132,6 +194,7 @@
     field('task').value = task || DEFAULT_TASK;
     prefill();
     renderDays();
+    loadFree();
     $('#book-view', dialog).hidden = false; $('#book-done', dialog).hidden = true;
     if (!dialog.open) dialog.showModal();
   }
@@ -162,11 +225,11 @@
     if (!form.reportValidity() || button.disabled) return;
     const f = new FormData(form);
     if (!f.get('date')) { showError('Выберите удобный день.'); return; }
-    if (!f.get('slot')) { showError('Выберите удобное время.'); return; }
+    if (!f.get('slot') && !f.get('start')) { showError('Выберите удобное время.'); return; }
     showError('');
     const payload = {
       name: f.get('name'), phone: phoneCheck().value, site: f.get('site'), consent: f.get('consent') === 'on',
-      date: f.get('date'), slot: f.get('slot'), task: f.get('task'), company_extra: f.get('company_extra'),
+      date: f.get('date'), slot: f.get('slot') || '', start: f.get('start') || '', task: f.get('task'), company_extra: f.get('company_extra'),
       page: location.origin + location.pathname, utm: utm()
     };
     button.disabled = true; button.textContent = 'Записываем…';
@@ -181,7 +244,7 @@
         $('#book-to-agent', dialog).hidden = typeof window.alloBookToAgent !== 'function';
         $('#book-view', dialog).hidden = true; $('#book-done', dialog).hidden = false;
       } else {
-        if (j.error === 'slot') renderDays();
+        if (j.error === 'slot') { renderDays(); loadFree(); }
         showError(ERRORS[j.error] || 'Не удалось записаться. Попробуйте ещё раз через минуту.');
       }
     } catch (err) {
