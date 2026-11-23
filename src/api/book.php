@@ -50,8 +50,9 @@ if ($start !== '') {
   $slotText = $days[(int)$day->format('w')] . ', ' . (int)$day->format('j') . ' ' . $months[(int)$day->format('n') - 1] . ', ' . ALLO_BOOK_SLOTS[$slot] . ' МСК';
 }
 
-// Встреча в Google Календарь менеджера: сервис nextbot-demo проверяет по Битриксу, что сделку только что изменили,
-// берёт имя и телефон из её контакта и ставит встречу. Не вышло — запись всё равно есть в сделке, время подтвердит менеджер.
+// Встреча в Google Календарь менеджера: сервис nextbot-demo ставит её, только если в сделке Битрикса есть свежая
+// запись с этим же временем (строка «Начало (UTC)» в описании новой сделки или в комментарии за последние 15 минут),
+// имя и телефон берёт из контакта сделки. Поэтому чужой запрос к сервису встречу не поставит и ничего не узнает. Не вышло — запись всё равно есть в сделке, время подтвердит менеджер.
 function allo_calendar_book($deal, $startTs) {
   $cfg = allo_config();
   $url = $cfg['calendar_book_url'] ?? 'https://nextbot-demo.i-am-ivan-perov.workers.dev/site-book';
@@ -87,10 +88,12 @@ $pkey = allo_phone_key($phone);
 $result = null;
 
 try {
-  allo_update('book', $pkey, function ($saved) use (&$result, $cfg, $pkey, $phone, $name, $site, $in, $utm, $now, $slotText) {
+  allo_update('book', $pkey, function ($saved) use (&$result, $cfg, $pkey, $phone, $name, $site, $in, $utm, $now, $slotText, $startTs) {
     $rec = allo_lead_record($phone, $name, $site, $in, $utm, allo_str($in['task'] ?? '', 100) ?: 'Запись на демонстрацию');
     $rec['booking'] = true;
     $rec['slot_text'] = $slotText;
+    // Метка для сервиса календаря: встречу он ставит только на время, записанное в этой сделке (см. allo_calendar_book).
+    if ($startTs) $rec['start_iso'] = gmdate('Y-m-d\TH:i:s\Z', $startTs);
 
     // Сделка с этого номера за последние сутки: прошлая запись, заявка с главной или с /demo/.
     $deal = $saved['deal'] ?? null;
@@ -107,7 +110,7 @@ try {
       try {
         $stage = allo_move_deal($deal, 'booked')[0];
         allo_deal_comment($deal, allo_lines([
-          ['Запись на демонстрацию', $slotText], ['Имя', $name], ['Телефон', '+' . $phone], ['Сайт компании', $site],
+          ['Запись на демонстрацию', $slotText], ['Начало (UTC)', $rec['start_iso'] ?? ''], ['Имя', $name], ['Телефон', '+' . $phone], ['Сайт компании', $site],
           ['Кнопка на сайте', $rec['task']], ['Страница', $rec['page']],
           ['Согласие на обработку ПД', 'да, ' . $rec['created_text']],
         ]));
