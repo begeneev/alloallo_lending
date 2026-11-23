@@ -46,7 +46,7 @@
       <label class="bk-consent"><input type="checkbox" name="consent" required><span>Согласен на <a href="/privacy/" target="_blank" rel="noopener">обработку персональных данных</a> для заявки и демонстрации в соответствии с <a href="/policy/" target="_blank" rel="noopener">политикой обработки персональных данных</a></span></label>
       <p class="bk-error" id="book-error" role="alert" hidden></p>
       <button class="bk-btn bk-primary" type="submit">${LABEL}</button>
-      <p class="bk-note">Менеджер позвонит, чтобы подтвердить день и время.</p>
+      <p class="bk-note">Менеджер свяжется с вами, чтобы подтвердить день и время.</p>
     </form></div>
   <div id="book-done" hidden><h2>Вы записаны</h2><p class="bk-muted" id="book-done-text"></p>
     <div class="bk-actions"><button class="bk-btn bk-primary" type="button" id="book-to-agent" hidden>Пока поговорить с агентом</button><button class="bk-btn bk-secondary" type="button" id="book-close">Закрыть</button></div></div>`;
@@ -240,7 +240,7 @@
         const text = $('#book-done-text', dialog), when = document.createElement('strong');
         when.textContent = j.slot_text || '';
         text.textContent = '';
-        text.append(String(payload.name).trim() + ', ждём вас на демонстрации: ', when, '. Менеджер позвонит, чтобы подтвердить время.');
+        text.append(String(payload.name).trim() + ', ждём вас на демонстрации: ', when, '. Менеджер свяжется с вами, чтобы подтвердить время.');
         $('#book-to-agent', dialog).hidden = typeof window.alloBookToAgent !== 'function';
         $('#book-view', dialog).hidden = true; $('#book-done', dialog).hidden = false;
       } else {
