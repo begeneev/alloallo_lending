@@ -26,19 +26,53 @@ if (!$phone) allo_json(['ok' => false, 'error' => 'phone'], 400);
 if ($name === '') allo_json(['ok' => false, 'error' => 'name'], 400);
 if (!$consent) allo_json(['ok' => false, 'error' => 'consent'], 400);
 
-// День — рабочий, от сегодня до трёх недель вперёд (по поясу из настроек); время — один из интервалов.
+// Время: начало встречи из Google Календаря менеджера (start, ISO; окно берёт свободные часы у /api/slots.php)
+// или, если календарь не ответил, — рабочий день до трёх недель вперёд и интервал (по поясу из настроек).
 $slot = (string)($in['slot'] ?? '');
 $date = (string)($in['date'] ?? '');
+$start = (string)($in['start'] ?? '');
 $tz = new DateTimeZone($cfg['timezone'] ?: 'Europe/Moscow');
-$day = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) ? DateTime::createFromFormat('!Y-m-d', $date, $tz) : false;
-$today = new DateTime('today', $tz);
-$ahead = $day ? (int)$today->diff($day)->format('%r%a') : -1;
-if (!isset(ALLO_BOOK_SLOTS[$slot]) || !$day || $day->format('Y-m-d') !== $date || $ahead < 0 || $ahead > ALLO_BOOK_DAYS_AHEAD || (int)$day->format('N') > 5) {
-  allo_json(['ok' => false, 'error' => 'slot'], 400);
-}
 $days = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 $months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-$slotText = $days[(int)$day->format('w')] . ', ' . (int)$day->format('j') . ' ' . $months[(int)$day->format('n') - 1] . ', ' . ALLO_BOOK_SLOTS[$slot] . ' МСК';
+$startTs = null;
+if ($start !== '') {
+  $startTs = preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:00:00(\.000)?Z$/', $start) ? strtotime($start) : false;
+  if (!$startTs || $startTs < time() + 1800 || $startTs > time() + ALLO_BOOK_DAYS_AHEAD * ALLO_DAY) allo_json(['ok' => false, 'error' => 'slot'], 400);
+  $at = (new DateTime('@' . $startTs))->setTimezone($tz);
+  $slotText = $days[(int)$at->format('w')] . ', ' . (int)$at->format('j') . ' ' . $months[(int)$at->format('n') - 1] . ', ' . $at->format('H:i') . ' МСК';
+} else {
+  $day = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) ? DateTime::createFromFormat('!Y-m-d', $date, $tz) : false;
+  $today = new DateTime('today', $tz);
+  $ahead = $day ? (int)$today->diff($day)->format('%r%a') : -1;
+  if (!isset(ALLO_BOOK_SLOTS[$slot]) || !$day || $day->format('Y-m-d') !== $date || $ahead < 0 || $ahead > ALLO_BOOK_DAYS_AHEAD || (int)$day->format('N') > 5) {
+    allo_json(['ok' => false, 'error' => 'slot'], 400);
+  }
+  $slotText = $days[(int)$day->format('w')] . ', ' . (int)$day->format('j') . ' ' . $months[(int)$day->format('n') - 1] . ', ' . ALLO_BOOK_SLOTS[$slot] . ' МСК';
+}
+
+// Встреча в Google Календарь менеджера: сервис nextbot-demo проверяет по Битриксу, что сделку только что изменили,
+// берёт имя и телефон из её контакта и ставит встречу. Не вышло — запись всё равно есть в сделке, время подтвердит менеджер.
+function allo_calendar_book($deal, $startTs) {
+  $cfg = allo_config();
+  $url = $cfg['calendar_book_url'] ?? 'https://nextbot-demo.i-am-ivan-perov.workers.dev/site-book';
+  if (!$url || !$deal) return false;
+  $body = json_encode(['deal' => (string)$deal, 'start' => gmdate('Y-m-d\TH:i:s\Z', $startTs)]);
+  $raw = false;
+  if (function_exists('curl_init')) {
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $body, CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_TIMEOUT => 12]);
+    $raw = curl_exec($ch);
+    curl_close($ch);
+  } else {
+    $raw = @file_get_contents($url, false, stream_context_create(['http' => ['method' => 'POST', 'header' => "Content-Type: application/json\r\n",
+      'content' => $body, 'timeout' => 12, 'ignore_errors' => true]]));
+  }
+  $j = is_string($raw) ? json_decode($raw, true) : null;
+  $ok = is_array($j) && !empty($j['ok']);
+  allo_log($ok ? 'book_calendar' : 'book_calendar_failed', ['deal' => $deal, 'error' => is_array($j) ? ($j['error'] ?? '') : 'no_response']);
+  return $ok;
+}
 
 allo_rate_limit();
 if (random_int(1, 20) === 1) allo_cleanup();
@@ -91,7 +125,7 @@ try {
       allo_write_link_record($rec); // ссылка из сообщения WhatsApp откроет звонок агенту Аллоалло с этой сделкой
       allo_log('book', ['deal' => $rec['deal'], 'slot' => $slotText]);
     }
-    $result = ['ok' => true, 'slot_text' => $slotText];
+    $result = ['ok' => true, 'slot_text' => $slotText, 'deal' => $rec['deal']];
     return ['deal' => $rec['deal'], 'expires' => $now + ALLO_DAY];
   });
 } catch (Throwable $e) {
@@ -100,4 +134,5 @@ try {
 }
 
 if (!$result['ok']) allo_json($result, 503);
-allo_json($result);
+$calendar = $startTs ? allo_calendar_book($result['deal'], $startTs) : false;
+allo_json(['ok' => true, 'slot_text' => $result['slot_text'], 'calendar' => $calendar]);
