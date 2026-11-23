@@ -539,7 +539,7 @@ function allo_create_deal($rec) {
     'SOURCE_DESCRIPTION' => 'Форма на сайте: ' . $rec['task'],
     'COMMENTS' => allo_lines([
       ['Имя', $rec['name']], ['Телефон', '+' . $rec['phone']], ['Сайт компании', $rec['site']],
-      ['Удобное время демонстрации', $rec['slot_text'] ?? ''],
+      ['Удобное время демонстрации', $rec['slot_text'] ?? ''], ['Начало (UTC)', $rec['start_iso'] ?? ''],
       ['Кнопка на сайте', $rec['task']], ['Сфера', $rec['industry']], ['Страница', $rec['page']],
       ['Согласие на обработку ПД', 'да, ' . $rec['created_text']],
     ]),
@@ -614,7 +614,7 @@ function allo_restore_code($code) {
 // открывается обычный звонок агенту Аллоалло с той же сделкой.
 function allo_write_link_record($rec) {
   if (empty($rec['link_code']) || empty($rec['deal'])) return;
-  unset($rec['demo'], $rec['booking'], $rec['slot_text']);
+  unset($rec['demo'], $rec['booking'], $rec['slot_text'], $rec['start_iso']);
   $rec['calls'] = [];
   allo_write('codes', $rec['link_code'], $rec);
 }
