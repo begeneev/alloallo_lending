@@ -33,7 +33,7 @@ h1{font-size:clamp(2.4rem,4.6vw,4rem);font-weight:550;letter-spacing:-.06em;line
 h1 span{color:var(--purple)}
 .intro p{font-size:15px;line-height:1.8;color:var(--muted);max-width:34ch;padding-bottom:6px}
 
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding-bottom:96px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;padding-bottom:96px}
 .card{border:1px solid var(--line);border-radius:var(--radius);padding:30px 28px 28px;display:flex;flex-direction:column;background:#fff;transition:border-color .2s,box-shadow .2s}
 .card[data-state="connecting"],.card[data-state="connected"]{border-color:var(--purple);box-shadow:0 18px 50px -24px rgba(101,71,239,.45)}
 .tag{align-self:flex-start;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--purple);background:#eee8fd;border-radius:999px;padding:7px 12px}
@@ -158,6 +158,20 @@ h1 span{color:var(--purple)}
       <div class="call"><div class="btnwrap"><span class="ring r1"></span><span class="ring r2"></span><button type="button" class="callbtn" aria-label="Позвонить"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button></div>
         <div aria-live="polite"><p class="status"><span data-t="status">Оставьте контакты</span><span class="timer" data-t="timer"></span></p><p class="sub" data-t="sub">Запишитесь на смену шин</p></div></div>
     </article>
+    <article class="card" data-agent="stom" data-state="locked">
+      <span class="tag">Стоматология</span>
+      <h2>«Жемчужина»</h2>
+      <p class="about">Стоматология: лечение, чистка, имплантация, брекеты и детский приём. Запись по расписанию пяти врачей, СМС о записи.</p>
+      <form class="lead" novalidate>
+        <div class="hp" aria-hidden="true"><input name="company_extra" tabindex="-1" autocomplete="off"></div>
+        <div class="row"><input name="name" autocomplete="name" maxlength="100" placeholder="Ваше имя" aria-label="Имя" required><input name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="Телефон" aria-label="Телефон" required></div>
+        <label class="consent"><input type="checkbox" name="consent" required><span>Согласен на <a href="/privacy/" target="_blank" rel="noopener">обработку персональных данных</a> для демо-звонка в соответствии с <a href="/policy/" target="_blank" rel="noopener">политикой обработки персональных данных</a></span></label>
+        <p class="err" role="alert" hidden></p>
+        <button type="submit" class="go">Открыть звонок</button>
+      </form>
+      <div class="call"><div class="btnwrap"><span class="ring r1"></span><span class="ring r2"></span><button type="button" class="callbtn" aria-label="Позвонить"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button></div>
+        <div aria-live="polite"><p class="status"><span data-t="status">Оставьте контакты</span><span class="timer" data-t="timer"></span></p><p class="sub" data-t="sub">Запись к врачу и СМС о записи</p></div></div>
+    </article>
   </section>
   <section class="book-cta" aria-labelledby="book-cta-title">
     <div><h2 id="book-cta-title">Хотите такого агента для своей компании?</h2><p>Запишитесь на демонстрацию: покажем агента, подготовленного по вашему сайту. Выберите удобный день и время — менеджер свяжется с вами.</p></div>
@@ -176,7 +190,7 @@ h1 span{color:var(--purple)}
    звоним командами AlloalloWidget.start()/stop(), состояние — getState().connectionStatus. Скрипт за раз загружен один:
    нажали другую карточку — старый убираем, грузим ее и сразу звоним. Кто говорит — по громкости голоса бота и микрофона. */
 (() => {
-  const WIDGETS = ["https://voice.nextbot.kz/embed/alloallo-widget.js?token=emb_6QH6nSOlF-E0XqabLcAWTkcaI7Dh0aWd81QULHTJfDY&environment=production&apiEndpoint=https://voice.nextbot.kz", "https://voice.nextbot.kz/embed/alloallo-widget.js?token=emb_CHDXJMSd_-XJHpya-T38S8b2doeFLk2r6ZoFDWqmbr0&environment=production&apiEndpoint=https://voice.nextbot.kz", "https://voice.nextbot.kz/embed/alloallo-widget.js?token=emb__KL-Z1HyDC3EMI7kX5PSsoAUqyWc_4TuMgVb7mPbkHk&environment=production&apiEndpoint=https://voice.nextbot.kz"];
+  const WIDGETS = ["https://voice.nextbot.kz/embed/alloallo-widget.js?token=emb_6QH6nSOlF-E0XqabLcAWTkcaI7Dh0aWd81QULHTJfDY&environment=production&apiEndpoint=https://voice.nextbot.kz", "https://voice.nextbot.kz/embed/alloallo-widget.js?token=emb_CHDXJMSd_-XJHpya-T38S8b2doeFLk2r6ZoFDWqmbr0&environment=production&apiEndpoint=https://voice.nextbot.kz", "https://voice.nextbot.kz/embed/alloallo-widget.js?token=emb__KL-Z1HyDC3EMI7kX5PSsoAUqyWc_4TuMgVb7mPbkHk&environment=production&apiEndpoint=https://voice.nextbot.kz", "https://xn--j1ab.xn--80aa6aabasd.xn--p1ai/embed/alloallo-widget.js?token=emb_YbSPrqjU3iZsLu27lY4VFKY3Ex7v_86wxrEovLoueuQ&environment=production&apiEndpoint=https://xn--j1ab.xn--80aa6aabasd.xn--p1ai"];
   const TX = {
     idle: null, loading: ["Готовим звонок…", "Пара секунд"],
     connecting: ["Соединяем…", "Если браузер спросит про микрофон, нажмите «Разрешить»"],
@@ -249,7 +263,9 @@ h1 span{color:var(--purple)}
     const s = document.createElement('script');
     s.src = WIDGETS[i]; s.async = true; s.id = 'alloallo-widget-script';
     // Контекст звонка из заявки: агент видит имя и телефон, платформа связывает разговор с заявкой.
-    s.setAttribute('data-alloallo-context', JSON.stringify((leads[i] && leads[i].context) || {}));
+    const ctx = Object.assign({}, (leads[i] && leads[i].context) || {});
+    if (cards[i].dataset.agent === 'stom' && leads[i]) ctx.metadata = { telefon: leads[i].phone };
+    s.setAttribute('data-alloallo-context', JSON.stringify(ctx));
     s.onload = () => {
       const w = window.AlloalloWidget;
       if (s !== script || !w) return;
@@ -306,7 +322,7 @@ h1 span{color:var(--purple)}
     whom.append('Заявка: ', Object.assign(document.createElement('b'), { textContent: name }), ', ' + shown);
     window.alloBookData = { name, phone }; // окно записи на демонстрацию (/book.js) подставит эти контакты
     if (j.used) { setState(i, 'used'); return; }
-    leads[i] = { code: j.code, context: j.context || {}, again: !!j.repeat_call, started: false };
+    leads[i] = { code: j.code, context: j.context || {}, again: !!j.repeat_call, started: false, phone: String(phone).replace(/\D/g, '') };
     setState(i, 'idle');
     // В пустые формы других карточек подставляем те же имя и телефон: отправить их всё равно нужно самому.
     cards.forEach((o) => { const of = o.querySelector('.lead'); if (of.hidden) return; const n = field(of, 'name'); if (!n.value) n.value = name; if (!field(of, 'phone').value) phoneOf(of).set(phone); });
@@ -340,6 +356,8 @@ h1 span{color:var(--purple)}
     if (busy()) return;
     // Нажали «Позвонить» — сделка переходит на «Начал звонок» (один раз на заявку).
     if (!leads[i].started) { leads[i].started = true; sendEvent(i, 'start'); }
+    // стоматология: номер — сервису демо, он пришлет СМС о записи (clients/alloallo-demos/stomatologiya)
+    if (c.dataset.agent === 'stom') fetch('https://stomatologiya-demo.i-am-ivan-perov.workers.dev/tel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tel: leads[i].phone }) }).catch(() => {});
     if (i === cur && W) { startCall(); return; }
     autoStart = true; loadWidget(i);
   }));
